@@ -7,7 +7,7 @@ import {
   FileCode, GitBranch, Cpu, Globe, Eye
 } from 'lucide-react';
 
-type Section = 'overview' | 'stack' | 'schema' | 'rules' | 'structure' | 'status';
+type Section = 'overview' | 'stack' | 'schema' | 'rules' | 'structure' | 'code' | 'status';
 
 const sections: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Обзор', icon: <Eye size={18} /> },
@@ -15,6 +15,7 @@ const sections: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: 'schema', label: 'Схема БД', icon: <Database size={18} /> },
   { id: 'rules', label: 'Правила', icon: <Shield size={18} /> },
   { id: 'structure', label: 'Структура', icon: <FileCode size={18} /> },
+  { id: 'code', label: 'Код v1', icon: <GitBranch size={18} /> },
   { id: 'status', label: 'Статус', icon: <CheckCircle2 size={18} /> },
 ];
 
@@ -97,6 +98,7 @@ export default function App() {
               {activeSection === 'schema' && <SchemaSection />}
               {activeSection === 'rules' && <RulesSection />}
               {activeSection === 'structure' && <StructureSection />}
+              {activeSection === 'code' && <CodeSection />}
               {activeSection === 'status' && <StatusSection />}
             </motion.div>
           </AnimatePresence>
@@ -585,22 +587,198 @@ function StructureSection() {
   );
 }
 
+/* ========== CODE SECTION ========== */
+function CodeSection() {
+  const files = [
+    {
+      path: 'server/src/index.ts',
+      desc: 'Точка входа — Express + Socket.io + graceful shutdown',
+      lines: 120,
+    },
+    {
+      path: 'server/src/config/index.ts',
+      desc: 'Конфигурация из env',
+      lines: 28,
+    },
+    {
+      path: 'server/src/services/prisma.ts',
+      desc: 'Prisma Client + Serializable Transaction wrapper',
+      lines: 30,
+    },
+    {
+      path: 'server/src/services/redis.ts',
+      desc: 'Redis Client + Live Config + AFK timers + rate limit',
+      lines: 120,
+    },
+    {
+      path: 'server/src/services/cron.ts',
+      desc: 'Cron jobs: AFK check, loot cleanup, resource respawn',
+      lines: 160,
+    },
+    {
+      path: 'server/src/middleware/auth.ts',
+      desc: 'JWT auth middleware + zone validation + god mode guard',
+      lines: 95,
+    },
+    {
+      path: 'server/src/modules/auth/service.ts',
+      desc: 'Register + Login с Zod валидацией',
+      lines: 145,
+    },
+    {
+      path: 'server/src/socket/handlers.ts',
+      desc: 'Socket handlers: auth, movement, disconnect',
+      lines: 130,
+    },
+    {
+      path: 'server/src/types/socket.ts',
+      desc: 'Type-safe Socket.io events (ClientToServer + ServerToClient)',
+      lines: 130,
+    },
+    {
+      path: 'server/prisma/schema.prisma',
+      desc: '17 моделей БД',
+      lines: 180,
+    },
+    {
+      path: 'server/prisma/seed.ts',
+      desc: 'Seed: God user, bags, templates, recipes, resource nodes',
+      lines: 170,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-gray-800 bg-[#0d1220] p-6">
+        <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+          <GitBranch className="text-emerald-400" size={24} />
+          Итерация 1: Базовый Каркас
+        </h2>
+        <p className="text-gray-400 mb-4">Production-ready серверный код — готов к запуску</p>
+        
+        <div className="flex items-center gap-3 mb-6">
+          <span className="px-3 py-1.5 text-xs rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            ✅ 11 файлов создано
+          </span>
+          <span className="px-3 py-1.5 text-xs rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            ~1,300 строк кода
+          </span>
+          <span className="px-3 py-1.5 text-xs rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            TypeScript Strict Mode
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {files.map((file) => (
+            <div key={file.path} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-700 bg-gray-900/30 hover:border-gray-600 transition-colors">
+              <span className="text-blue-400 text-xs">📄</span>
+              <code className="text-xs text-gray-200 font-mono flex-1">{file.path}</code>
+              <span className="text-[10px] text-gray-500 hidden sm:block">{file.desc}</span>
+              <span className="text-[10px] text-gray-600 px-2 py-0.5 rounded bg-gray-800">{file.lines} lines</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-800 bg-[#0d1220] p-6">
+        <h3 className="text-lg font-bold text-white mb-4">🚀 Как Запустить</h3>
+        <div className="rounded-lg bg-gray-900 border border-gray-700 p-4 overflow-x-auto">
+          <pre className="text-xs text-gray-300 whitespace-pre">
+{`# 1. Установить зависимости
+cd server
+npm install
+
+# 2. Настроить .env (скопировать из .env.example)
+cp .env.example .env
+# Отредактировать DATABASE_URL и REDIS_URL
+
+# 3. Инициализировать БД
+npx prisma migrate dev --name init
+npx prisma generate
+npm run prisma:seed
+
+# 4. Запустить сервер
+npm run dev
+
+# Сервер запустится на http://localhost:3001`}
+          </pre>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
+        <h3 className="text-lg font-bold text-emerald-400 mb-3">✅ Что Реализовано в Итерации 1</h3>
+        <div className="grid md:grid-cols-2 gap-2 text-xs text-gray-300">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Express HTTP сервер с CORS</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Socket.io с type-safe events</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Prisma ORM + Serializable transactions</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Redis: Live Config, AFK, rate-limit</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>JWT auth middleware</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Zone validation middleware</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>God mode middleware</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Auth: Register + Login (Zod validation)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Character movement (clamped, broadcast)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Cron: AFK raid/hub, loot TTL, respawn</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Graceful shutdown (SIGTERM/SIGINT)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Seed: God user, templates, recipes, nodes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ========== STATUS SECTION ========== */
 function StatusSection() {
   const tasks = [
     { name: 'Архитектура принята', status: 'done', detail: 'Схема, правила, стек — утверждены' },
     { name: 'Prisma Schema', status: 'done', detail: '17 моделей, индексы, связи' },
-    { name: 'Базовый каркас сервера', status: 'pending', detail: 'Express + Socket.io + Prisma + Redis' },
-    { name: 'Auth модуль', status: 'pending', detail: 'Регистрация, логин, JWT, role guard' },
-    { name: 'Character модуль', status: 'pending', detail: 'Создание, движение, координаты' },
+    { name: 'Базовый каркас сервера', status: 'done', detail: 'Express + Socket.io + Prisma + Redis' },
+    { name: 'Auth модуль', status: 'done', detail: 'Регистрация, логин, JWT, Zod validation' },
+    { name: 'Character движение', status: 'done', detail: 'Координаты, clamp, broadcast в зону' },
+    { name: 'Cron Jobs', status: 'done', detail: 'AFK raid/hub, loot TTL, resource respawn' },
+    { name: 'Middleware', status: 'done', detail: 'Auth, zone validation, god mode guard' },
     { name: 'Inventory модуль', status: 'pending', detail: 'Слоты, экипировка, сейф, сумка' },
     { name: 'Combat модуль', status: 'pending', detail: 'PvP/PvE, урон, смерть, лут-дроп' },
     { name: 'Crafting модуль', status: 'pending', detail: 'Рецепты, крафт, salvage' },
     { name: 'Raid модуль', status: 'pending', detail: 'Вход, таймер, экстракция, вайп' },
-    { name: 'World модуль', status: 'pending', detail: 'ResourceNode, DroppedLoot, NPC AI' },
-    { name: 'God Mode', status: 'pending', detail: 'Live Config, спавн, ивенты' },
-    { name: 'Cron Jobs', status: 'pending', detail: 'AFK, loot TTL, resource respawn' },
-    { name: 'Anti-Exploit', status: 'pending', detail: 'Transactions, zone validation, rate-limit' },
+    { name: 'World модуль', status: 'pending', detail: 'ResourceNode harvest, DroppedLoot, NPC AI' },
+    { name: 'God Mode handlers', status: 'pending', detail: 'Spawn, config, events через Socket.io' },
+    { name: 'Anti-Exploit финализация', status: 'pending', detail: 'Rate-limit на все события, move validation' },
   ];
 
   return (
@@ -643,14 +821,14 @@ function StatusSection() {
       </div>
 
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
-        <h3 className="text-lg font-bold text-emerald-400 mb-3">🟢 Готовность к Разработке</h3>
+        <h3 className="text-lg font-bold text-emerald-400 mb-3">🟢 Итерация 1 Завершена</h3>
         <div className="space-y-2 text-sm text-gray-300">
           <p>✅ Архитектура усвоена полностью</p>
           <p>✅ Схема Prisma принята как единая точка истины</p>
           <p>✅ Все 10 критических правил зафиксированы</p>
-          <p>✅ Защита от эксплойтов учтена на уровне дизайна</p>
-          <p>✅ Готов генерировать production-ready TypeScript код</p>
-          <p className="pt-2 text-emerald-400 font-medium">→ Жду указаний по первой итерации разработки</p>
+          <p>✅ Базовый каркас сервера создан (11 файлов, ~1300 строк)</p>
+          <p>✅ Auth, движение, Cron, middleware — готовы</p>
+          <p className="pt-2 text-emerald-400 font-medium">→ Готов к Итерации 2: Inventory модуль</p>
         </div>
       </div>
     </div>
