@@ -1,6 +1,8 @@
-# MMO Survival Server
+# 🎮 MMO Survival Server
 
-Production-ready backend для браузерной 2D Open-World Survival MMO.
+**Production-ready backend** для браузерной 2D Open-World Survival MMO с персистентным миром.
+
+> 📖 **[QUICKSTART.md](./QUICKSTART.md)** — Быстрый старт и инструкции по запуску
 
 ## 🛠 Стек
 

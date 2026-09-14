@@ -8,8 +8,7 @@ import { redis } from './services/redis.js';
 import { initCronJobs } from './services/cron.js';
 import { authMiddleware } from './middleware/auth.js';
 import {
-  registerAuthHandlers,
-  registerCharacterHandlers,
+  registerAllHandlers,
   handleDisconnect,
 } from './socket/handlers.js';
 import type { ClientToServerEvents, ServerToClientEvents } from './types/socket.js';
@@ -82,9 +81,8 @@ async function bootstrap(): Promise<void> {
       }).catch(console.error);
     }
 
-    // Register handlers
-    registerAuthHandlers(io, socket);
-    registerCharacterHandlers(io, socket);
+    // Register all module handlers
+    registerAllHandlers(io, socket);
 
     // Disconnect handler
     socket.on('disconnect', () => {
