@@ -41,7 +41,10 @@ interface AttackEffect {
 }
 
 export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, onAttack, onAbility }: Props) {
-  console.log('[GameWorld] MOBA-style component loaded!');
+  console.log('[GameWorld] 🎮 MOBA-style v2.0 component loaded!');
+  useEffect(() => {
+    console.log('✅ GameWorld mounted - MOBA controls active!');
+  }, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
@@ -758,7 +761,7 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
     <div className="space-y-4">
       <div className="rounded-xl border border-gray-800 bg-[#0d1220] p-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 className="text-lg font-bold text-white">🌍 Игровой мир</h2>
+          <h2 className="text-lg font-bold text-white">🌍 Игровой мир <span className="text-xs text-emerald-400 ml-2">v2.0 MOBA</span></h2>
           <div className="flex gap-2 text-xs flex-wrap">
             <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400">🟢 Вы</span>
             <span className="px-2 py-1 rounded bg-red-500/20 text-red-400">🔴 NPC: {worldState.npcs.length}</span>
