@@ -266,6 +266,7 @@ export default function App() {
             onPickup={(lootId: string) => send('inventory:pickup', { lootId })}
             onHarvest={(nodeId: string) => send('resource:harvest', { nodeId })}
             onAttack={(targetId: string) => send('combat:attack', { targetId })}
+            onAbility={(ability: string) => send('ability:use', { ability })}
           />
         )}
         {activeTab === 'inventory' && (

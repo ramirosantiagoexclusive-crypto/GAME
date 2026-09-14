@@ -5,133 +5,86 @@ interface Props {
   size?: number;
 }
 
-export function VirtualJoystick({ onMove, size = 120 }: Props) {
+/**
+ * Mobile Legends style virtual joystick
+ * - Left side of screen
+ * - Drag to move character
+ * - Continuous movement while held
+ */
+export function VirtualJoystick({ onMove, size = 140 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const animationRef = useRef<number>();
   const lastMoveRef = useRef({ x: 0, y: 0 });
+  const animationRef = useRef<number>();
+  const pointerIdRef = useRef<number | null>(null);
 
-  const handleStart = useCallback((clientX: number, clientY: number) => {
+  const updatePosition = useCallback((clientX: number, clientY: number) => {
     const container = containerRef.current;
     if (!container) return;
-    
+
     const rect = container.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     const dx = clientX - centerX;
     const dy = clientY - centerY;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    const maxDistance = size / 2 - 20;
-    
+    const maxDistance = size / 2 - 25;
+
     const clampedDistance = Math.min(distance, maxDistance);
     const angle = Math.atan2(dy, dx);
-    
+
     const newX = Math.cos(angle) * clampedDistance;
     const newY = Math.sin(angle) * clampedDistance;
-    
+
     setPosition({ x: newX, y: newY });
-    setActive(true);
-    lastMoveRef.current = { x: newX / maxDistance, y: newY / maxDistance };
+    lastMoveRef.current = {
+      x: newX / maxDistance,
+      y: newY / maxDistance,
+    };
   }, [size]);
 
-  const handleMove = useCallback((clientX: number, clientY: number) => {
-    if (!active) return;
-    
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const rect = container.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    const dx = clientX - centerX;
-    const dy = clientY - centerY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const maxDistance = size / 2 - 20;
-    
-    const clampedDistance = Math.min(distance, maxDistance);
-    const angle = Math.atan2(dy, dx);
-    
-    const newX = Math.cos(angle) * clampedDistance;
-    const newY = Math.sin(angle) * clampedDistance;
-    
-    setPosition({ x: newX, y: newY });
-    lastMoveRef.current = { x: newX / maxDistance, y: newY / maxDistance };
-  }, [active, size]);
-
-  const handleEnd = useCallback(() => {
-    setActive(false);
-    setPosition({ x: 0, y: 0 });
-    lastMoveRef.current = { x: 0, y: 0 };
-  }, []);
-
-  // Touch events
+  // Pointer events (unified touch + mouse)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const handleTouchStart = (e: TouchEvent) => {
+    const handlePointerDown = (e: PointerEvent) => {
       e.preventDefault();
-      const touch = e.touches[0];
-      if (touch) handleStart(touch.clientX, touch.clientY);
+      e.stopPropagation();
+      container.setPointerCapture(e.pointerId);
+      pointerIdRef.current = e.pointerId;
+      setActive(true);
+      updatePosition(e.clientX, e.clientY);
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
+      if (pointerIdRef.current !== e.pointerId) return;
       e.preventDefault();
-      const touch = e.touches[0];
-      if (touch) handleMove(touch.clientX, touch.clientY);
+      updatePosition(e.clientX, e.clientY);
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      e.preventDefault();
-      handleEnd();
+    const handlePointerUp = (e: PointerEvent) => {
+      if (pointerIdRef.current !== e.pointerId) return;
+      pointerIdRef.current = null;
+      setActive(false);
+      setPosition({ x: 0, y: 0 });
+      lastMoveRef.current = { x: 0, y: 0 };
     };
 
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    container.addEventListener('pointerdown', handlePointerDown);
+    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointerup', handlePointerUp);
+    container.addEventListener('pointercancel', handlePointerUp);
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('pointerdown', handlePointerDown);
+      container.removeEventListener('pointermove', handlePointerMove);
+      container.removeEventListener('pointerup', handlePointerUp);
+      container.removeEventListener('pointercancel', handlePointerUp);
     };
-  }, [handleStart, handleMove, handleEnd]);
-
-  // Mouse events (for testing on desktop)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let isMouseDown = false;
-
-    const handleMouseDown = (e: MouseEvent) => {
-      isMouseDown = true;
-      handleStart(e.clientX, e.clientY);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isMouseDown) return;
-      handleMove(e.clientX, e.clientY);
-    };
-
-    const handleMouseUp = () => {
-      isMouseDown = false;
-      handleEnd();
-    };
-
-    container.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      container.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [handleStart, handleMove, handleEnd]);
+  }, [updatePosition]);
 
   // Continuous movement loop
   useEffect(() => {
@@ -141,42 +94,57 @@ export function VirtualJoystick({ onMove, size = 120 }: Props) {
       }
       animationRef.current = requestAnimationFrame(loop);
     };
-    
     animationRef.current = requestAnimationFrame(loop);
-    
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [active, onMove]);
+
+  const intensity = Math.sqrt(position.x * position.x + position.y * position.y) / (size / 2 - 25);
 
   return (
     <div
       ref={containerRef}
-      className="relative rounded-full bg-gray-800/50 border-2 border-gray-600/50 backdrop-blur-sm touch-none select-none"
-      style={{ width: size, height: size }}
+      className="relative rounded-full select-none touch-none"
+      style={{
+        width: size,
+        height: size,
+        background: `radial-gradient(circle, rgba(16, 185, 129, ${0.1 + intensity * 0.15}) 0%, rgba(15, 23, 42, 0.6) 70%)`,
+        border: `2px solid rgba(16, 185, 129, ${0.3 + intensity * 0.4})`,
+        boxShadow: active ? '0 0 20px rgba(16, 185, 129, 0.3)' : 'none',
+      }}
     >
-      {/* Base circle */}
-      <div className="absolute inset-4 rounded-full border-2 border-gray-600/30" />
-      
-      {/* Thumb */}
+      {/* Crosshair lines */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-2 right-2 h-px bg-gray-600/30" />
+        <div className="absolute left-1/2 top-2 bottom-2 w-px bg-gray-600/30" />
+      </div>
+
+      {/* Outer ring */}
       <div
-        className="absolute rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-lg shadow-emerald-500/50 transition-transform"
+        className="absolute rounded-full border-2 border-emerald-500/20 pointer-events-none"
         style={{
-          width: 50,
-          height: 50,
-          left: `calc(50% - 25px + ${position.x}px)`,
-          top: `calc(50% - 25px + ${position.y}px)`,
-          transform: active ? 'scale(1.1)' : 'scale(1)',
+          inset: 10,
+          transform: active ? 'scale(1.05)' : 'scale(1)',
+          transition: 'transform 0.1s',
         }}
       />
-      
-      {/* Direction indicators */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 text-gray-500 text-xs">▲</div>
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-gray-500 text-xs">▼</div>
-      <div className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">◀</div>
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">▶</div>
+
+      {/* Thumb */}
+      <div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: 56,
+          height: 56,
+          left: `calc(50% - 28px + ${position.x}px)`,
+          top: `calc(50% - 28px + ${position.y}px)`,
+          background: 'radial-gradient(circle at 30% 30%, #34d399, #059669)',
+          boxShadow: `0 0 ${10 + intensity * 15}px rgba(16, 185, 129, ${0.4 + intensity * 0.4})`,
+          transition: active ? 'none' : 'all 0.15s ease-out',
+        }}
+      >
+        <div className="absolute inset-2 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
+      </div>
     </div>
   );
 }

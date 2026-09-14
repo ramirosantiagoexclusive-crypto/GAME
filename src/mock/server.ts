@@ -308,6 +308,81 @@ export class MockSocket extends EventEmitter {
       case 'god:spawn':
         this.handleGodSpawn(payload);
         break;
+      case 'ability:use':
+        this.handleAbilityUse(payload);
+        break;
+    }
+  }
+
+  private handleAbilityUse(payload: { ability: string }) {
+    const char = this.getCharacter();
+    if (!char) return;
+
+    const { ability } = payload;
+    
+    // Find nearest NPC within range
+    const abilityRanges: Record<string, number> = {
+      'Q': 60,
+      'W': 150,
+      'E': 0,
+      'R': 200,
+    };
+
+    const range = abilityRanges[ability] ?? 100;
+    const damage = ability === 'R' ? 50 : ability === 'Q' ? 20 : 10;
+
+    if (ability === 'E') {
+      // Shield - heal self
+      char.hp = Math.min(char.maxHp, char.hp + 30);
+      this.emit('system:notice', { message: '🛡️ Shield activated! +30 HP' });
+      this.emitWorldState();
+      return;
+    }
+
+    // Find target in range
+    let target: any = null;
+    let minDist = Infinity;
+    state.npcs.forEach(npc => {
+      if (npc.zone !== char.zone) return;
+      const dx = npc.x - char.x;
+      const dy = npc.y - char.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= range && dist < minDist) {
+        minDist = dist;
+        target = npc;
+      }
+    });
+
+    if (target) {
+      target.hp = Math.max(0, target.hp - damage);
+      this.emit('combat:hit', { attackerId: char.id, targetId: target.id, damage, targetHp: target.hp });
+      this.emit('system:notice', { message: `✨ ${ability} ability hit for ${damage} damage!` });
+
+      if (target.hp <= 0) {
+        // Drop loot
+        const lootTemplates = ['tpl_wood', 'tpl_stone', 'tpl_iron', 'tpl_gold'];
+        const tplId = lootTemplates[Math.floor(Math.random() * lootTemplates.length)];
+        const instanceId = uuid();
+        state.instances.set(instanceId, { id: instanceId, templateId: tplId });
+        
+        const lootId = uuid();
+        state.loot.set(lootId, {
+          id: lootId,
+          itemInstanceId: instanceId,
+          quantity: Math.floor(Math.random() * 5) + 1,
+          x: target.x,
+          y: target.y,
+          zone: target.zone,
+          expiresAt: Date.now() + 10 * 60 * 1000,
+        });
+
+        state.npcs.delete(target.id);
+        this.emit('system:notice', { message: `${target.name} defeated!` });
+      }
+
+      this.emitWorldState();
+    } else {
+      this.emit('system:notice', { message: `✨ ${ability} ability — no target in range` });
     }
   }
 
