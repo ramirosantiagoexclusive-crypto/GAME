@@ -9,6 +9,9 @@ import { registerWorldHandlers } from '../modules/world/handlers.js';
 import { registerCombatHandlers } from '../modules/combat/handlers.js';
 import { registerRaidHandlers } from '../modules/raid/handlers.js';
 import { registerGodHandlers } from '../modules/god/handlers.js';
+import { registerStashHandlers } from '../modules/stash/handlers.js';
+import { registerTradingHandlers } from '../modules/trading/handlers.js';
+import { registerChatHandlers } from '../modules/chat/handlers.js';
 
 export function registerAuthHandlers(
   io: Server<ClientToServerEvents, ServerToClientEvents>,
@@ -160,6 +163,9 @@ export function registerAllHandlers(
   registerCombatHandlers(io, socket);
   registerRaidHandlers(io, socket);
   registerGodHandlers(io, socket);
+  registerStashHandlers(io, socket);
+  registerTradingHandlers(io, socket);
+  registerChatHandlers(io, socket);
 }
 
 /**

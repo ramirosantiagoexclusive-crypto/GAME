@@ -95,6 +95,19 @@ async function bootstrap(): Promise<void> {
     });
   });
 
+  // ============ Initialize NPC AI ============
+
+  const { startNpcAiLoop, initializeZoneNpcs } = await import('./modules/world/npc-ai.js');
+  
+  // Initialize NPCs in all zones
+  const zones = ['hub', 'raid_zone_1', 'raid_zone_2']; // Add more zones as needed
+  for (const zone of zones) {
+    await initializeZoneNpcs(zone);
+  }
+  
+  // Start NPC AI loop
+  startNpcAiLoop();
+
   // ============ Initialize Cron Jobs ============
 
   initCronJobs();
