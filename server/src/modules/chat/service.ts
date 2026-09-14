@@ -1,18 +1,6 @@
-import { z } from 'zod';
 import { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '../../types/socket.js';
 import { prisma } from '../../services/prisma.js';
-
-// ============ Validation Schemas ============
-
-const chatMessageSchema = z.object({
-  message: z.string().min(1).max(200),
-});
-
-const privateMessageSchema = z.object({
-  targetCharacterId: z.string().uuid(),
-  message: z.string().min(1).max(200),
-});
 
 // ============ Chat Types ============
 
@@ -93,14 +81,13 @@ export async function sendPrivateMessage(
   io: Server<ClientToServerEvents, ServerToClientEvents>,
   senderId: string,
   senderName: string,
-  payload: unknown
+  targetCharacterId: string,
+  message: string
 ): Promise<{ success: boolean; error?: string; message?: ChatMessage }> {
-  const parsed = privateMessageSchema.safeParse(payload);
-  if (!parsed.success) {
+  // Validate inputs
+  if (!targetCharacterId || !message || message.trim().length === 0) {
     return { success: false, error: 'Invalid input' };
   }
-
-  const { targetCharacterId, message } = parsed.data;
 
   try {
     // 1. Get target character
@@ -187,70 +174,4 @@ export function sendZoneSystemMessage(
   return chatMessage;
 }
 
-// ============ Chat Handlers ============
 
-export function registerChatHandlers(
-  io: Server<ClientToServerEvents, ServerToClientEvents>,
-  socket: any
-): void {
-  const authData = socket.data as { characterId?: string; userId?: string };
-
-  if (!authData?.characterId) {
-    return;
-  }
-
-  /**
-   * Send chat message
-   */
-  socket.on('chat:send', async (payload: { channel: ChatChannel; message: string; targetId?: string }) => {
-    try {
-      const parsed = chatMessageSchema.safeParse({ message: payload.message });
-      if (!parsed.success) {
-        socket.emit('chat:error', { message: 'Invalid message' });
-        return;
-      }
-
-      const character = await prisma.character.findUnique({
-        where: { id: authData.characterId },
-        select: { name: true, zone: true },
-      });
-
-      if (!character) {
-        socket.emit('chat:error', { message: 'Character not found' });
-        return;
-      }
-
-      switch (payload.channel) {
-        case 'global':
-          sendGlobalMessage(io, authData.characterId, character.name, payload.message);
-          break;
-
-        case 'zone':
-          sendZoneMessage(io, authData.characterId, character.name, character.zone, payload.message);
-          break;
-
-        case 'private':
-          if (!payload.targetId) {
-            socket.emit('chat:error', { message: 'Target ID required for private messages' });
-            return;
-          }
-          const result = await sendPrivateMessage(
-            io,
-            authData.characterId,
-            character.name,
-            { targetCharacterId: payload.targetId, message: payload.message }
-          );
-          if (!result.success) {
-            socket.emit('chat:error', { message: result.error });
-          }
-          break;
-
-        default:
-          socket.emit('chat:error', { message: 'Invalid channel' });
-      }
-    } catch (error) {
-      console.error('[Chat] Send error:', error);
-      socket.emit('chat:error', { message: 'Failed to send message' });
-    }
-  });
-}
