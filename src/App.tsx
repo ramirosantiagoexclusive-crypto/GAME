@@ -261,7 +261,6 @@ export default function App() {
             worldState={worldState}
             onMove={(x: number, y: number) => {
               send('character:move', { x, y });
-              setCharacter(prev => prev ? { ...prev, x, y } : prev);
             }}
             onPickup={(lootId: string) => send('inventory:pickup', { lootId })}
             onHarvest={(nodeId: string) => send('resource:harvest', { nodeId })}
