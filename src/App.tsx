@@ -259,7 +259,10 @@ export default function App() {
           <GameWorld
             character={character}
             worldState={worldState}
-            onMove={(x: number, y: number) => send('character:move', { x, y })}
+            onMove={(x: number, y: number) => {
+              send('character:move', { x, y });
+              setCharacter(prev => prev ? { ...prev, x, y } : prev);
+            }}
             onPickup={(lootId: string) => send('inventory:pickup', { lootId })}
             onHarvest={(nodeId: string) => send('resource:harvest', { nodeId })}
             onAttack={(targetId: string) => send('combat:attack', { targetId })}
