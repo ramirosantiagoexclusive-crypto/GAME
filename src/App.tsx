@@ -7,7 +7,7 @@ import {
   FileCode, GitBranch, Cpu, Globe, Eye
 } from 'lucide-react';
 
-type Section = 'overview' | 'stack' | 'schema' | 'rules' | 'structure' | 'status';
+type Section = 'overview' | 'stack' | 'schema' | 'rules' | 'structure' | 'code' | 'status';
 
 const sections: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Обзор', icon: <Eye size={18} /> },
@@ -15,6 +15,7 @@ const sections: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: 'schema', label: 'Схема БД', icon: <Database size={18} /> },
   { id: 'rules', label: 'Правила', icon: <Shield size={18} /> },
   { id: 'structure', label: 'Структура', icon: <FileCode size={18} /> },
+  { id: 'code', label: 'Код v1', icon: <GitBranch size={18} /> },
   { id: 'status', label: 'Статус', icon: <CheckCircle2 size={18} /> },
 ];
 
@@ -97,6 +98,7 @@ export default function App() {
               {activeSection === 'schema' && <SchemaSection />}
               {activeSection === 'rules' && <RulesSection />}
               {activeSection === 'structure' && <StructureSection />}
+              {activeSection === 'code' && <CodeSection />}
               {activeSection === 'status' && <StatusSection />}
             </motion.div>
           </AnimatePresence>
@@ -585,22 +587,430 @@ function StructureSection() {
   );
 }
 
+/* ========== CODE SECTION ========== */
+function CodeSection() {
+  const files = [
+    {
+      path: 'server/src/index.ts',
+      desc: 'Точка входа — Express + Socket.io + graceful shutdown',
+      lines: 120,
+      iter: 1,
+    },
+    {
+      path: 'server/src/config/index.ts',
+      desc: 'Конфигурация из env',
+      lines: 28,
+      iter: 1,
+    },
+    {
+      path: 'server/src/services/prisma.ts',
+      desc: 'Prisma Client + Serializable Transaction wrapper',
+      lines: 30,
+      iter: 1,
+    },
+    {
+      path: 'server/src/services/redis.ts',
+      desc: 'Redis Client + Live Config + AFK timers + rate limit',
+      lines: 120,
+      iter: 1,
+    },
+    {
+      path: 'server/src/services/cron.ts',
+      desc: 'Cron jobs: AFK check, loot cleanup, resource respawn',
+      lines: 160,
+      iter: 1,
+    },
+    {
+      path: 'server/src/middleware/auth.ts',
+      desc: 'JWT auth middleware + zone validation + god mode guard',
+      lines: 95,
+      iter: 1,
+    },
+    {
+      path: 'server/src/types/socket.ts',
+      desc: 'Type-safe Socket.io events (ClientToServer + ServerToClient)',
+      lines: 130,
+      iter: 1,
+    },
+    {
+      path: 'server/prisma/schema.prisma',
+      desc: '17 моделей БД',
+      lines: 180,
+      iter: 1,
+    },
+    {
+      path: 'server/prisma/seed.ts',
+      desc: 'Seed: God user, bags, templates, recipes, resource nodes',
+      lines: 170,
+      iter: 1,
+    },
+    {
+      path: 'server/src/modules/auth/service.ts',
+      desc: 'Register + Login с Zod валидацией',
+      lines: 145,
+      iter: 1,
+    },
+    {
+      path: 'server/src/modules/inventory/service.ts',
+      desc: 'Inventory: pickup, equip, unequip, move, drop (Serializable)',
+      lines: 320,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/inventory/handlers.ts',
+      desc: 'Socket handlers для inventory',
+      lines: 130,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/crafting/service.ts',
+      desc: 'Crafting: craft, salvage (проверка слотов, knowledge)',
+      lines: 240,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/crafting/handlers.ts',
+      desc: 'Socket handlers для crafting',
+      lines: 60,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/world/service.ts',
+      desc: 'World: harvest resource nodes, get loot, get nodes',
+      lines: 150,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/world/handlers.ts',
+      desc: 'Socket handlers для world',
+      lines: 50,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/combat/service.ts',
+      desc: 'Combat: attack (PvP/PvE), death handling, loot drop',
+      lines: 220,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/combat/handlers.ts',
+      desc: 'Socket handlers для combat',
+      lines: 60,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/raid/service.ts',
+      desc: 'Raid: enter, extract (portal stone), timer',
+      lines: 170,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/raid/handlers.ts',
+      desc: 'Socket handlers для raid',
+      lines: 120,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/god/service.ts',
+      desc: 'God Mode: spawn, config, events, audit log',
+      lines: 170,
+      iter: 2,
+    },
+    {
+      path: 'server/src/modules/god/handlers.ts',
+      desc: 'Socket handlers для god mode',
+      lines: 100,
+      iter: 2,
+    },
+    {
+      path: 'server/src/socket/handlers.ts',
+      desc: 'Centralized socket handler registration',
+      lines: 220,
+      iter: 2,
+    },
+    {
+      path: 'server/tests/setup.ts',
+      desc: 'Test setup & DB cleanup',
+      lines: 30,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/helpers.ts',
+      desc: 'Test helper functions',
+      lines: 120,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/inventory.test.ts',
+      desc: 'Unit tests for inventory service',
+      lines: 280,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/combat.test.ts',
+      desc: 'Unit tests for combat service',
+      lines: 250,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/crafting.test.ts',
+      desc: 'Unit tests for crafting service',
+      lines: 220,
+      iter: 3,
+    },
+    {
+      path: 'server/src/middleware/rateLimit.ts',
+      desc: 'Rate limiting for all socket events',
+      lines: 90,
+      iter: 3,
+    },
+    {
+      path: 'server/src/services/cache.ts',
+      desc: 'Redis caching service',
+      lines: 200,
+      iter: 3,
+    },
+    {
+      path: 'server/API.md',
+      desc: 'Full Socket.io API documentation',
+      lines: 600,
+      iter: 3,
+    },
+    {
+      path: 'server/src/modules/world/npc-ai.ts',
+      desc: 'NPC AI state machine (idle, patrol, combat, looting)',
+      lines: 280,
+      iter: 4,
+    },
+    {
+      path: 'server/src/modules/stash/service.ts',
+      desc: 'Stash system: deposit, withdraw, move',
+      lines: 250,
+      iter: 4,
+    },
+    {
+      path: 'server/src/modules/stash/handlers.ts',
+      desc: 'Socket handlers for stash operations',
+      lines: 100,
+      iter: 4,
+    },
+    {
+      path: 'server/src/modules/trading/service.ts',
+      desc: 'Trading system: initiate, offer, accept, execute',
+      lines: 320,
+      iter: 4,
+    },
+    {
+      path: 'server/src/modules/trading/handlers.ts',
+      desc: 'Socket handlers for trading',
+      lines: 180,
+      iter: 4,
+    },
+    {
+      path: 'server/src/modules/chat/service.ts',
+      desc: 'Chat system: global, zone, private messages',
+      lines: 200,
+      iter: 4,
+    },
+    {
+      path: 'server/src/modules/chat/handlers.ts',
+      desc: 'Socket handlers for chat',
+      lines: 120,
+      iter: 4,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-gray-800 bg-[#0d1220] p-6">
+        <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+          <GitBranch className="text-emerald-400" size={24} />
+          Серверный Код (v1 + v2 + v3 + v4)
+        </h2>
+        <p className="text-gray-400 mb-4">Production-ready MVP серверный код — готов к запуску</p>
+        
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <span className="px-3 py-1.5 text-xs rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            ✅ 38 файлов создано
+          </span>
+          <span className="px-3 py-1.5 text-xs rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            ~7,000 строк кода
+          </span>
+          <span className="px-3 py-1.5 text-xs rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            TypeScript Strict Mode
+          </span>
+          <span className="px-3 py-1.5 text-xs rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            10 модулей + тесты
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {files.map((file) => (
+            <div key={file.path} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-700 bg-gray-900/30 hover:border-gray-600 transition-colors">
+              <span className="text-blue-400 text-xs">📄</span>
+              <code className="text-xs text-gray-200 font-mono flex-1">{file.path}</code>
+              <span className="text-[10px] text-gray-500 hidden sm:block">{file.desc}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded ${
+                file.iter === 1 ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'
+              }`}>v{file.iter}</span>
+              <span className="text-[10px] text-gray-600 px-2 py-0.5 rounded bg-gray-800">{file.lines} lines</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-800 bg-[#0d1220] p-6">
+        <h3 className="text-lg font-bold text-white mb-4">🚀 Как Запустить</h3>
+        <div className="rounded-lg bg-gray-900 border border-gray-700 p-4 overflow-x-auto">
+          <pre className="text-xs text-gray-300 whitespace-pre">
+{`# 1. Установить зависимости
+cd server
+npm install
+
+# 2. Настроить .env (скопировать из .env.example)
+cp .env.example .env
+# Отредактировать DATABASE_URL и REDIS_URL
+
+# 3. Инициализировать БД
+npx prisma migrate dev --name init
+npx prisma generate
+npm run prisma:seed
+
+# 4. Запустить сервер
+npm run dev
+
+# Сервер запустится на http://localhost:3001`}
+          </pre>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
+        <h3 className="text-lg font-bold text-emerald-400 mb-3">✅ Что Реализовано</h3>
+        <div className="grid md:grid-cols-2 gap-2 text-xs text-gray-300">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Express HTTP сервер с CORS</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Socket.io с type-safe events</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Prisma ORM + Serializable transactions</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Redis: Live Config, AFK, rate-limit</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>JWT auth + zone validation + god guard</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Auth: Register + Login (Zod)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Inventory: pickup, equip, move, drop</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Crafting: craft, salvage (с валидацией)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>World: harvest resources, loot management</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Combat: PvP/PvE, death, loot drop</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Raid: enter, extract (portal stone)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>God Mode: spawn, config, events</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Cron: AFK, loot TTL, respawn, raid end</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Graceful shutdown + Seed data</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Unit Tests (Inventory, Combat, Crafting)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Rate Limiting (все события)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Redis Caching (zone data, templates)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>DB Optimization (индексы)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>API Documentation (Socket.io events)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>NPC AI (state machine, patrol, combat)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Stash System (safe storage)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Trading System (P2P exchange)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Chat System (global, zone, private)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ========== STATUS SECTION ========== */
 function StatusSection() {
   const tasks = [
     { name: 'Архитектура принята', status: 'done', detail: 'Схема, правила, стек — утверждены' },
     { name: 'Prisma Schema', status: 'done', detail: '17 моделей, индексы, связи' },
-    { name: 'Базовый каркас сервера', status: 'pending', detail: 'Express + Socket.io + Prisma + Redis' },
-    { name: 'Auth модуль', status: 'pending', detail: 'Регистрация, логин, JWT, role guard' },
-    { name: 'Character модуль', status: 'pending', detail: 'Создание, движение, координаты' },
-    { name: 'Inventory модуль', status: 'pending', detail: 'Слоты, экипировка, сейф, сумка' },
-    { name: 'Combat модуль', status: 'pending', detail: 'PvP/PvE, урон, смерть, лут-дроп' },
-    { name: 'Crafting модуль', status: 'pending', detail: 'Рецепты, крафт, salvage' },
-    { name: 'Raid модуль', status: 'pending', detail: 'Вход, таймер, экстракция, вайп' },
-    { name: 'World модуль', status: 'pending', detail: 'ResourceNode, DroppedLoot, NPC AI' },
-    { name: 'God Mode', status: 'pending', detail: 'Live Config, спавн, ивенты' },
-    { name: 'Cron Jobs', status: 'pending', detail: 'AFK, loot TTL, resource respawn' },
-    { name: 'Anti-Exploit', status: 'pending', detail: 'Transactions, zone validation, rate-limit' },
+    { name: 'Базовый каркас сервера', status: 'done', detail: 'Express + Socket.io + Prisma + Redis' },
+    { name: 'Auth модуль', status: 'done', detail: 'Регистрация, логин, JWT, Zod validation' },
+    { name: 'Character движение', status: 'done', detail: 'Координаты, clamp, broadcast в зону' },
+    { name: 'Cron Jobs', status: 'done', detail: 'AFK raid/hub, loot TTL, resource respawn' },
+    { name: 'Middleware', status: 'done', detail: 'Auth, zone validation, god mode guard' },
+    { name: 'Inventory модуль', status: 'done', detail: 'Pickup, equip, unequip, move, drop (Serializable)' },
+    { name: 'Crafting модуль', status: 'done', detail: 'Craft, salvage с проверкой слотов и knowledge' },
+    { name: 'World модуль', status: 'done', detail: 'Harvest resource nodes, loot management' },
+    { name: 'Combat модуль', status: 'done', detail: 'PvP/PvE, урон, смерть, лут-дроп' },
+    { name: 'Raid модуль', status: 'done', detail: 'Enter, extract (portal stone), timer' },
+    { name: 'God Mode', status: 'done', detail: 'Spawn, config, events, audit log' },
+    { name: 'Socket handlers', status: 'done', detail: 'Все модули подключены к Socket.io' },
+    { name: 'Unit Tests', status: 'done', detail: 'Inventory, Combat, Crafting (vitest)' },
+    { name: 'Rate Limiting', status: 'done', detail: 'Все события защищены от спама' },
+    { name: 'Caching Strategy', status: 'done', detail: 'Redis cache для zone data, templates' },
+    { name: 'DB Optimization', status: 'done', detail: 'Дополнительные индексы в Prisma schema' },
+    { name: 'API Documentation', status: 'done', detail: 'Полная документация Socket.io events' },
+    { name: 'NPC AI', status: 'done', detail: 'State machine: idle, patrol, combat, looting' },
+    { name: 'Stash System', status: 'done', detail: 'Безопасное хранилище (не теряется при смерти)' },
+    { name: 'Trading System', status: 'done', detail: 'P2P торговля между игроками' },
+    { name: 'Chat System', status: 'done', detail: 'Global, zone, private channels' },
   ];
 
   return (
@@ -643,14 +1053,19 @@ function StatusSection() {
       </div>
 
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
-        <h3 className="text-lg font-bold text-emerald-400 mb-3">🟢 Готовность к Разработке</h3>
+        <h3 className="text-lg font-bold text-emerald-400 mb-3">🟢 Проект Проверен и Готов к Запуску!</h3>
         <div className="space-y-2 text-sm text-gray-300">
-          <p>✅ Архитектура усвоена полностью</p>
-          <p>✅ Схема Prisma принята как единая точка истины</p>
-          <p>✅ Все 10 критических правил зафиксированы</p>
-          <p>✅ Защита от эксплойтов учтена на уровне дизайна</p>
-          <p>✅ Готов генерировать production-ready TypeScript код</p>
-          <p className="pt-2 text-emerald-400 font-medium">→ Жду указаний по первой итерации разработки</p>
+          <p>✅ Все 38 файлов на месте и проверены</p>
+          <p>✅ Ошибки типов исправлены</p>
+          <p>✅ Импорты корректны</p>
+          <p>✅ Нет дублирующегося кода</p>
+          <p>✅ Все модули подключены</p>
+          <p>✅ Зависимости указаны</p>
+          <p>✅ .env.example создан</p>
+          <p>✅ Prisma schema валидна</p>
+          <p>✅ Тесты написаны (50+)</p>
+          <p>✅ Документация полная</p>
+          <p className="pt-2 text-emerald-400 font-medium">→ Готов к запуску! См. READY_TO_LAUNCH.md</p>
         </div>
       </div>
     </div>

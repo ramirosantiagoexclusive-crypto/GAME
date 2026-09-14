@@ -1,0 +1,260 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  role          String    @default("player") // "player" | "god"
+  createdAt     DateTime  @default(now())
+  characters    Character[]
+  godActions    GodAction[]
+  
+  @@index([email])
+  @@index([role])
+}
+
+model Character {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  name              String    @unique
+  
+  x                 Float     @default(0)
+  y                 Float     @default(0)
+  zone              String    @default("hub") 
+  status            String    @default("alive") // "alive", "dead", "afk"
+  afkSince          DateTime? 
+  
+  hp                Int       @default(100)
+  maxHp             Int       @default(100)
+  
+  maxStashSlots     Int       @default(2) 
+  
+  currentRaidId     String?
+  currentRaid       RaidInstance? @relation(fields: [currentRaidId], references: [id])
+  
+  bagId             String?   
+  bag               Bag?      @relation(fields: [bagId], references: [id])
+  
+  inventory         InventorySlot[]
+  stash             StashSlot[]
+  equipment         EquipmentSlot[]
+  knowledge         PlayerKnowledge[]
+  createdAt         DateTime  @default(now())
+  
+  @@index([zone, status])
+  @@index([status, afkSince])
+  @@index([userId])
+  @@index([currentRaidId])
+}
+
+model Bag {
+  id              String    @id @default(uuid())
+  name            String    
+  tier            Int       @default(1) 
+  inventorySlots  Int       @default(10) 
+  stashUnlock     Int       @default(2) 
+  characters      Character[] 
+  
+  @@index([tier])
+}
+
+model ItemTemplate {
+  id                String    @id @default(uuid())
+  name              String
+  type              String    // "resource", "weapon", "armor", "bag", "portal_stone", "consumable"
+  maxDurability     Int?      
+  defaultStats      Json?     
+  salvageYield      Json?     
+  
+  recipesResult     Recipe[]
+  instances         ItemInstance[]
+  droppedLoots      DroppedLoot[]
+  resourceNodes     ResourceNode[]
+  
+  @@index([type])
+  @@index([name])
+}
+
+model ItemInstance {
+  id                String       @id @default(uuid())
+  templateId        String
+  template          ItemTemplate @relation(fields: [templateId], references: [id])
+  
+  currentDurability Int?      
+  customStats       Json?     
+  
+  inventorySlot     InventorySlot?
+  stashSlot         StashSlot?
+  equipmentSlot     EquipmentSlot?
+  droppedLoot       DroppedLoot?
+  npcInventory      NpcInventorySlot?
+  
+  @@index([templateId])
+}
+
+model InventorySlot {
+  id             String       @id @default(uuid())
+  characterId    String
+  character      Character    @relation(fields: [characterId], references: [id])
+  itemInstanceId String       @unique
+  itemInstance   ItemInstance @relation(fields: [itemInstanceId], references: [id])
+  quantity       Int          @default(1)
+  slotIndex      Int
+  
+  @@unique([characterId, slotIndex])
+  @@index([characterId])
+}
+
+model StashSlot {
+  id             String       @id @default(uuid())
+  characterId    String
+  character      Character    @relation(fields: [characterId], references: [id])
+  itemInstanceId String       @unique
+  itemInstance   ItemInstance @relation(fields: [itemInstanceId], references: [id])
+  quantity       Int          @default(1)
+  slotIndex      Int
+  
+  @@unique([characterId, slotIndex])
+  @@index([characterId])
+}
+
+model EquipmentSlot {
+  id             String       @id @default(uuid())
+  characterId    String
+  character      Character    @relation(fields: [characterId], references: [id])
+  itemInstanceId String       @unique
+  itemInstance   ItemInstance @relation(fields: [itemInstanceId], references: [id])
+  slotType       String       // "weapon", "armor", "helmet", "boots"
+  
+  @@unique([characterId, slotType])
+  @@index([characterId])
+}
+
+model Recipe {
+  id                 String       @id @default(uuid())
+  name               String
+  requiredResources  Json         // { "templateId_1": 5, "templateId_2": 3 }
+  resultTemplateId   String
+  resultTemplate     ItemTemplate @relation(fields: [resultTemplateId], references: [id])
+  resultQuantity     Int          @default(1)
+  
+  playerKnowledge    PlayerKnowledge[]
+  
+  @@index([name])
+  @@index([resultTemplateId])
+}
+
+model PlayerKnowledge {
+  id          String    @id @default(uuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id])
+  recipeId    String
+  recipe      Recipe    @relation(fields: [recipeId], references: [id])
+  unlockedAt  DateTime  @default(now())
+  
+  @@unique([characterId, recipeId])
+  @@index([characterId])
+}
+
+model DroppedLoot {
+  id             String       @id @default(uuid())
+  itemInstanceId String       @unique
+  itemInstance   ItemInstance @relation(fields: [itemInstanceId], references: [id])
+  quantity       Int          @default(1)
+  x              Float
+  y              Float
+  zone           String
+  droppedAt      DateTime     @default(now())
+  expiresAt      DateTime     
+  
+  @@index([zone, expiresAt])
+  @@index([zone])
+  @@index([expiresAt])
+}
+
+model ResourceNode {
+  id                   String       @id @default(uuid())
+  zone                 String
+  x                    Float
+  y                    Float
+  resourceTemplateId   String
+  resourceTemplate     ItemTemplate @relation(fields: [resourceTemplateId], references: [id])
+  respawnAt            DateTime     @default(now())
+  isDepleted           Boolean      @default(false)
+  
+  @@index([zone, isDepleted, respawnAt])
+  @@index([zone])
+  @@index([isDepleted, respawnAt])
+}
+
+model RaidInstance {
+  id          String    @id @default(uuid())
+  zoneId      String
+  startTime   DateTime  @default(now())
+  endTime     DateTime  
+  status      String    @default("active") // "active", "ended", "wiped"
+  characters  Character[]
+  
+  @@index([status, endTime])
+  @@index([zoneId, status])
+}
+
+model Npc {
+  id          String    @id @default(uuid())
+  templateId  String    
+  zone        String
+  x           Float
+  y           Float
+  hp          Int
+  maxHp       Int
+  state       String    @default("idle") 
+  targetId    String?   
+  inventory   NpcInventorySlot[]
+  
+  @@index([zone, state])
+  @@index([zone])
+}
+
+model NpcInventorySlot {
+  id             String       @id @default(uuid())
+  npcId          String
+  npc            Npc          @relation(fields: [npcId], references: [id])
+  itemInstanceId String       @unique
+  itemInstance   ItemInstance @relation(fields: [itemInstanceId], references: [id])
+  quantity       Int          @default(1)
+  
+  @@index([npcId])
+}
+
+model WorldState {
+  id                 String    @id @default("global")
+  currentTick        Int       @default(0)
+  globalBuffs        Json      @default("{}")
+  lastDungeonReset   DateTime?
+  lastHubEvent       DateTime?
+}
+
+model GodAction {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  actionType  String    
+  targetId    String?   
+  parameters  Json
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([actionType])
+  @@index([createdAt])
+}
