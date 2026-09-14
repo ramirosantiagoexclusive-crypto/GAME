@@ -41,6 +41,7 @@ interface AttackEffect {
 }
 
 export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, onAttack, onAbility }: Props) {
+  console.log('[GameWorld] MOBA-style component loaded!');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
@@ -831,6 +832,7 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
 
           {!isMobile && (
             <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-[10px] text-gray-300 space-y-0.5 border border-gray-700">
+              <div className="text-emerald-400 font-bold mb-1">✨ MOBA-стиль активно!</div>
               <div><span className="text-emerald-400 font-bold">ЛКМ</span> — выбор/движение</div>
               <div><span className="text-emerald-400 font-bold">ПКМ</span> — движение</div>
               <div><span className="text-emerald-400 font-bold">WASD</span> — движение</div>
