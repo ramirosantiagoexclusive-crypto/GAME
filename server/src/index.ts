@@ -81,6 +81,10 @@ async function bootstrap(): Promise<void> {
       }).catch(console.error);
     }
 
+    // Apply rate limiting to all events
+    const { applyRateLimits } = await import('./middleware/rateLimit.js');
+    applyRateLimits(socket);
+
     // Register all module handlers
     registerAllHandlers(io, socket);
 

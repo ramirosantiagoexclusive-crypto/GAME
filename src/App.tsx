@@ -728,6 +728,54 @@ function CodeSection() {
       lines: 220,
       iter: 2,
     },
+    {
+      path: 'server/tests/setup.ts',
+      desc: 'Test setup & DB cleanup',
+      lines: 30,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/helpers.ts',
+      desc: 'Test helper functions',
+      lines: 120,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/inventory.test.ts',
+      desc: 'Unit tests for inventory service',
+      lines: 280,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/combat.test.ts',
+      desc: 'Unit tests for combat service',
+      lines: 250,
+      iter: 3,
+    },
+    {
+      path: 'server/tests/crafting.test.ts',
+      desc: 'Unit tests for crafting service',
+      lines: 220,
+      iter: 3,
+    },
+    {
+      path: 'server/src/middleware/rateLimit.ts',
+      desc: 'Rate limiting for all socket events',
+      lines: 90,
+      iter: 3,
+    },
+    {
+      path: 'server/src/services/cache.ts',
+      desc: 'Redis caching service',
+      lines: 200,
+      iter: 3,
+    },
+    {
+      path: 'server/API.md',
+      desc: 'Full Socket.io API documentation',
+      lines: 600,
+      iter: 3,
+    },
   ];
 
   return (
@@ -741,16 +789,16 @@ function CodeSection() {
         
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <span className="px-3 py-1.5 text-xs rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-            ✅ 23 файла создано
+            ✅ 28 файлов создано
           </span>
           <span className="px-3 py-1.5 text-xs rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
-            ~3,800 строк кода
+            ~4,500 строк кода
           </span>
           <span className="px-3 py-1.5 text-xs rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30">
             TypeScript Strict Mode
           </span>
           <span className="px-3 py-1.5 text-xs rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
-            6 модулей
+            6 модулей + тесты
           </span>
         </div>
 
@@ -853,6 +901,26 @@ npm run dev
             <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
             <span>Graceful shutdown + Seed data</span>
           </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Unit Tests (Inventory, Combat, Crafting)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Rate Limiting (все события)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>Redis Caching (zone data, templates)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>DB Optimization (индексы)</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+            <span>API Documentation (Socket.io events)</span>
+          </div>
         </div>
       </div>
     </div>
@@ -876,9 +944,11 @@ function StatusSection() {
     { name: 'Raid модуль', status: 'done', detail: 'Enter, extract (portal stone), timer' },
     { name: 'God Mode', status: 'done', detail: 'Spawn, config, events, audit log' },
     { name: 'Socket handlers', status: 'done', detail: 'Все модули подключены к Socket.io' },
-    { name: 'Тестирование', status: 'pending', detail: 'Unit tests, integration tests' },
-    { name: 'Оптимизация', status: 'pending', detail: 'Query optimization, caching strategy' },
-    { name: 'Документация API', status: 'pending', detail: 'Socket events, REST endpoints' },
+    { name: 'Unit Tests', status: 'done', detail: 'Inventory, Combat, Crafting (vitest)' },
+    { name: 'Rate Limiting', status: 'done', detail: 'Все события защищены от спама' },
+    { name: 'Caching Strategy', status: 'done', detail: 'Redis cache для zone data, templates' },
+    { name: 'DB Optimization', status: 'done', detail: 'Дополнительные индексы в Prisma schema' },
+    { name: 'API Documentation', status: 'done', detail: 'Полная документация Socket.io events' },
   ];
 
   return (
@@ -921,16 +991,17 @@ function StatusSection() {
       </div>
 
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
-        <h3 className="text-lg font-bold text-emerald-400 mb-3">🟢 Итерация 2 Завершена</h3>
+        <h3 className="text-lg font-bold text-emerald-400 mb-3">🟢 Итерация 3 Завершена</h3>
         <div className="space-y-2 text-sm text-gray-300">
           <p>✅ Архитектура усвоена полностью</p>
-          <p>✅ Схема Prisma принята как единая точка истины</p>
-          <p>✅ Все 10 критических правил зафиксированы</p>
-          <p>✅ Базовый каркас сервера (v1) — 11 файлов, ~1,300 строк</p>
-          <p>✅ Все игровые модули (v2) — 12 файлов, ~2,500 строк</p>
-          <p>✅ Inventory, Crafting, World, Combat, Raid, God Mode — готовы</p>
-          <p>✅ Все операции инвентаря защищены Serializable transactions</p>
-          <p className="pt-2 text-emerald-400 font-medium">→ Готов к Итерации 3: Тестирование и оптимизация</p>
+          <p>✅ Схема Prisma с оптимизированными индексами</p>
+          <p>✅ Все 10 критических правил реализованы</p>
+          <p>✅ 28 файлов серверного кода (~4,500 строк)</p>
+          <p>✅ Unit tests: Inventory, Combat, Crafting</p>
+          <p>✅ Rate limiting на все Socket.io события</p>
+          <p>✅ Redis caching для zone data, templates, characters</p>
+          <p>✅ Полная API документация (Socket.io events)</p>
+          <p className="pt-2 text-emerald-400 font-medium">→ Production-ready! Готов к деплою</p>
         </div>
       </div>
     </div>

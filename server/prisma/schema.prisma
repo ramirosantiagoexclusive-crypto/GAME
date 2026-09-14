@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,6 +18,9 @@ model User {
   createdAt     DateTime  @default(now())
   characters    Character[]
   godActions    GodAction[]
+  
+  @@index([email])
+  @@index([role])
 }
 
 model Character {
@@ -48,6 +54,8 @@ model Character {
   
   @@index([zone, status])
   @@index([status, afkSince])
+  @@index([userId])
+  @@index([currentRaidId])
 }
 
 model Bag {
@@ -57,6 +65,8 @@ model Bag {
   inventorySlots  Int       @default(10) 
   stashUnlock     Int       @default(2) 
   characters      Character[] 
+  
+  @@index([tier])
 }
 
 model ItemTemplate {
@@ -73,6 +83,7 @@ model ItemTemplate {
   resourceNodes     ResourceNode[]
   
   @@index([type])
+  @@index([name])
 }
 
 model ItemInstance {
@@ -88,6 +99,8 @@ model ItemInstance {
   equipmentSlot     EquipmentSlot?
   droppedLoot       DroppedLoot?
   npcInventory      NpcInventorySlot?
+  
+  @@index([templateId])
 }
 
 model InventorySlot {
@@ -100,6 +113,7 @@ model InventorySlot {
   slotIndex      Int
   
   @@unique([characterId, slotIndex])
+  @@index([characterId])
 }
 
 model StashSlot {
@@ -112,6 +126,7 @@ model StashSlot {
   slotIndex      Int
   
   @@unique([characterId, slotIndex])
+  @@index([characterId])
 }
 
 model EquipmentSlot {
@@ -123,6 +138,7 @@ model EquipmentSlot {
   slotType       String       // "weapon", "armor", "helmet", "boots"
   
   @@unique([characterId, slotType])
+  @@index([characterId])
 }
 
 model Recipe {
@@ -134,6 +150,9 @@ model Recipe {
   resultQuantity     Int          @default(1)
   
   playerKnowledge    PlayerKnowledge[]
+  
+  @@index([name])
+  @@index([resultTemplateId])
 }
 
 model PlayerKnowledge {
@@ -145,6 +164,7 @@ model PlayerKnowledge {
   unlockedAt  DateTime  @default(now())
   
   @@unique([characterId, recipeId])
+  @@index([characterId])
 }
 
 model DroppedLoot {
@@ -159,6 +179,8 @@ model DroppedLoot {
   expiresAt      DateTime     
   
   @@index([zone, expiresAt])
+  @@index([zone])
+  @@index([expiresAt])
 }
 
 model ResourceNode {
@@ -172,6 +194,8 @@ model ResourceNode {
   isDepleted           Boolean      @default(false)
   
   @@index([zone, isDepleted, respawnAt])
+  @@index([zone])
+  @@index([isDepleted, respawnAt])
 }
 
 model RaidInstance {
@@ -183,6 +207,7 @@ model RaidInstance {
   characters  Character[]
   
   @@index([status, endTime])
+  @@index([zoneId, status])
 }
 
 model Npc {
@@ -198,6 +223,7 @@ model Npc {
   inventory   NpcInventorySlot[]
   
   @@index([zone, state])
+  @@index([zone])
 }
 
 model NpcInventorySlot {
@@ -207,6 +233,8 @@ model NpcInventorySlot {
   itemInstanceId String       @unique
   itemInstance   ItemInstance @relation(fields: [itemInstanceId], references: [id])
   quantity       Int          @default(1)
+  
+  @@index([npcId])
 }
 
 model WorldState {
@@ -225,4 +253,8 @@ model GodAction {
   targetId    String?   
   parameters  Json
   createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([actionType])
+  @@index([createdAt])
 }
