@@ -10,20 +10,12 @@ interface Props {
 export function StashPanel({ stash, maxSlots, onWithdraw, canAccess }: Props) {
   const slots = Array.from({ length: maxSlots }, (_, i) => stash.find(s => s.slotIndex === i) ?? null);
 
-  if (!canAccess) {
-    return (
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 text-center">
-        <div className="text-4xl mb-3">🔒</div>
-        <h2 className="text-lg font-bold text-amber-400 mb-2">Сейф недоступен</h2>
-        <p className="text-sm text-gray-400">Доступ к сейфу только в безопасной зоне (Хаб)</p>
-      </div>
-    );
-  }
-
   return (
     <div className="rounded-xl border border-gray-800 bg-[#0d1220] p-4">
       <h2 className="text-lg font-bold text-white mb-3">🔒 Сейф ({stash.length}/{maxSlots})</h2>
-      <p className="text-xs text-gray-400 mb-4">Безопасное хранилище — не теряется при смерти</p>
+      <p className="text-xs text-gray-400 mb-4">
+        Безопасное хранилище — доступно везде, не теряется при смерти
+      </p>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {slots.map((slot, i) => (

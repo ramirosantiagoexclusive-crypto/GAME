@@ -221,22 +221,64 @@ function seedData() {
   });
 
   // NPCs in raid zone
-  // NPCs in raid zone - больше разнообразия
+  // NPCs in raid zone - разные локации
   const raidNpcs = [
+    // Локация 1: Goblin Camp (300, 300)
     { name: 'Goblin', x: 300, y: 300, hp: 50, maxHp: 50 },
     { name: 'Goblin', x: 350, y: 280, hp: 50, maxHp: 50 },
-    { name: 'Orc', x: 400, y: 400, hp: 100, maxHp: 100 },
-    { name: 'Orc', x: 450, y: 380, hp: 100, maxHp: 100 },
-    { name: 'Wolf', x: 250, y: 350, hp: 30, maxHp: 30 },
-    { name: 'Wolf', x: 280, y: 370, hp: 30, maxHp: 30 },
-    { name: 'Wolf', x: 230, y: 330, hp: 30, maxHp: 30 },
-    { name: 'Troll', x: 500, y: 500, hp: 200, maxHp: 200 },
-    { name: 'Skeleton', x: 150, y: 200, hp: 40, maxHp: 40 },
-    { name: 'Skeleton', x: 180, y: 220, hp: 40, maxHp: 40 },
+    { name: 'Goblin Chief', x: 320, y: 320, hp: 150, maxHp: 150 },
+    
+    // Локация 2: Orc Fortress (600, 600)
+    { name: 'Orc', x: 600, y: 600, hp: 100, maxHp: 100 },
+    { name: 'Orc', x: 650, y: 580, hp: 100, maxHp: 100 },
+    { name: 'Orc Warlord', x: 620, y: 620, hp: 300, maxHp: 300 },
+    
+    // Локация 3: Wolf Den (200, 500)
+    { name: 'Wolf', x: 200, y: 500, hp: 30, maxHp: 30 },
+    { name: 'Wolf', x: 230, y: 520, hp: 30, maxHp: 30 },
+    { name: 'Wolf Alpha', x: 215, y: 510, hp: 80, maxHp: 80 },
+    
+    // Локация 4: Undead Crypt (-400, -400)
+    { name: 'Skeleton', x: -400, y: -400, hp: 40, maxHp: 40 },
+    { name: 'Skeleton', x: -380, y: -420, hp: 40, maxHp: 40 },
+    { name: 'Lich', x: -390, y: -410, hp: 250, maxHp: 250 },
+    
+    // Локация 5: Troll Cave (800, -300)
+    { name: 'Troll', x: 800, y: -300, hp: 200, maxHp: 200 },
+    { name: 'Troll', x: 830, y: -280, hp: 200, maxHp: 200 },
+    { name: 'Troll King', x: 815, y: -290, hp: 500, maxHp: 500 },
   ];
   raidNpcs.forEach(n => {
     const id = uuid();
     state.npcs.set(id, { id, name: n.name, zone: 'raid_zone_1', x: n.x, y: n.y, hp: n.hp, maxHp: n.maxHp, state: 'idle' });
+  });
+
+  // Loot chests in raid zones
+  const raidChests = [
+    { x: 320, y: 320, zone: 'raid_zone_1', loot: ['tpl_sword_iron', 'tpl_armor_leather'] },
+    { x: 620, y: 620, zone: 'raid_zone_1', loot: ['tpl_sword_iron', 'tpl_potion', 'tpl_potion'] },
+    { x: 215, y: 510, zone: 'raid_zone_1', loot: ['tpl_helmet_iron', 'tpl_potion'] },
+    { x: -390, y: -410, zone: 'raid_zone_1', loot: ['tpl_sword_iron', 'tpl_armor_leather', 'tpl_potion'] },
+    { x: 815, y: -290, zone: 'raid_zone_1', loot: ['tpl_sword_iron', 'tpl_sword_iron', 'tpl_armor_leather', 'tpl_potion', 'tpl_potion'] },
+  ];
+  
+  raidChests.forEach(chest => {
+    const chestId = uuid();
+    // Создаем ящик как special loot с флагом isChest
+    chest.loot.forEach(templateId => {
+      const instanceId = uuid();
+      state.instances.set(instanceId, { id: instanceId, templateId });
+      const lootId = uuid();
+      state.loot.set(lootId, {
+        id: lootId,
+        itemInstanceId: instanceId,
+        quantity: 1,
+        x: chest.x + (Math.random() - 0.5) * 20,
+        y: chest.y + (Math.random() - 0.5) * 20,
+        zone: chest.zone,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      });
+    });
   });
 
   // Test users

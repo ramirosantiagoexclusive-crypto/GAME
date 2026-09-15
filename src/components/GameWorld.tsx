@@ -449,6 +449,151 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         }
       }
 
+      // Hub buildings and decorations
+      if (char.zone === 'hub') {
+        // Main building - Town Hall
+        const townHallX = offsetX + 0;
+        const townHallY = offsetY - 100;
+        
+        // Building base
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(townHallX - 40, townHallY - 30, 80, 60);
+        
+        // Roof
+        ctx.fillStyle = '#991b1b';
+        ctx.beginPath();
+        ctx.moveTo(townHallX - 45, townHallY - 30);
+        ctx.lineTo(townHallX, townHallY - 60);
+        ctx.lineTo(townHallX + 45, townHallY - 30);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Door
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(townHallX - 8, townHallY + 10, 16, 20);
+        
+        // Windows
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(townHallX - 25, townHallY - 15, 12, 12);
+        ctx.fillRect(townHallX + 13, townHallY - 15, 12, 12);
+        
+        // Sign
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏛️ Town Hall', townHallX, townHallY + 45);
+
+        // Shop building
+        const shopX = offsetX + 150;
+        const shopY = offsetY - 50;
+        
+        ctx.fillStyle = '#1e40af';
+        ctx.fillRect(shopX - 30, shopY - 25, 60, 50);
+        
+        ctx.fillStyle = '#1e3a8a';
+        ctx.beginPath();
+        ctx.moveTo(shopX - 35, shopY - 25);
+        ctx.lineTo(shopX, shopY - 50);
+        ctx.lineTo(shopX + 35, shopY - 25);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(shopX - 20, shopY - 10, 10, 10);
+        ctx.fillRect(shopX + 10, shopY - 10, 10, 10);
+        
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(shopX - 6, shopY + 10, 12, 15);
+        
+        ctx.fillStyle = '#60a5fa';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('🛒 Shop', shopX, shopY + 40);
+
+        // Blacksmith
+        const smithX = offsetX - 150;
+        const smithY = offsetY - 50;
+        
+        ctx.fillStyle = '#374151';
+        ctx.fillRect(smithX - 35, smithY - 25, 70, 50);
+        
+        ctx.fillStyle = '#1f2937';
+        ctx.beginPath();
+        ctx.moveTo(smithX - 40, smithY - 25);
+        ctx.lineTo(smithX, smithY - 55);
+        ctx.lineTo(smithX + 40, smithY - 25);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Chimney with smoke
+        ctx.fillStyle = '#4b5563';
+        ctx.fillRect(smithX + 20, smithY - 55, 8, 20);
+        
+        // Smoke
+        const smokeOffset = Math.sin(now / 500) * 3;
+        ctx.fillStyle = 'rgba(156, 163, 175, 0.5)';
+        ctx.beginPath();
+        ctx.arc(smithX + 24 + smokeOffset, smithY - 60, 5, 0, Math.PI * 2);
+        ctx.arc(smithX + 26 + smokeOffset, smithY - 68, 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(smithX - 25, smithY - 10, 10, 10);
+        ctx.fillRect(smithX + 15, smithY - 10, 10, 10);
+        
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(smithX - 6, smithY + 10, 12, 15);
+        
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('⚒️ Blacksmith', smithX, smithY + 40);
+
+        // Decorative lamps
+        const lampPositions = [
+          { x: 80, y: 0 },
+          { x: -80, y: 0 },
+          { x: 0, y: 80 },
+          { x: 0, y: -80 },
+        ];
+        
+        lampPositions.forEach(lamp => {
+          const lx = offsetX + lamp.x;
+          const ly = offsetY + lamp.y;
+          
+          // Lamp post
+          ctx.fillStyle = '#4b5563';
+          ctx.fillRect(lx - 1, ly - 15, 2, 15);
+          
+          // Lamp light
+          const lampGlow = ctx.createRadialGradient(lx, ly - 18, 0, lx, ly - 18, 15);
+          lampGlow.addColorStop(0, 'rgba(251, 191, 36, 0.6)');
+          lampGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+          ctx.fillStyle = lampGlow;
+          ctx.beginPath();
+          ctx.arc(lx, ly - 18, 15, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(lx, ly - 18, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Flowers
+        for (let i = 0; i < 20; i++) {
+          const seed = (decorSeed + i * 73) % 1000;
+          const fx = offsetX + ((seed * 37) % 400) - 200;
+          const fy = offsetY + ((seed * 91) % 400) - 200;
+          
+          if (fx > -50 && fx < width + 50 && fy > -50 && fy < height + 50) {
+            const colors = ['#ec4899', '#f472b6', '#a855f7', '#3b82f6'];
+            ctx.fillStyle = colors[seed % colors.length];
+            ctx.beginPath();
+            ctx.arc(fx, fy, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
       // Grid (subtle)
       ctx.strokeStyle = 'rgba(30, 41, 59, 0.3)';
       ctx.lineWidth = 1;
@@ -590,7 +735,7 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         ctx.fillText(loot.quantity.toString(), x, y + 4);
       });
 
-      // NPCs
+      // NPCs - detailed sprites
       ws.npcs.forEach(npc => {
         const x = offsetX + npc.x;
         const y = offsetY + npc.y;
@@ -613,64 +758,153 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         }
 
         // Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.beginPath();
-        ctx.ellipse(x, y + 16, 14, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 18, 12, 4, 0, 0, Math.PI * 2);
         ctx.fill();
+
+        // Determine NPC type for coloring
+        const isBoss = npc.templateId.includes('Chief') || npc.templateId.includes('Warlord') || 
+                       npc.templateId.includes('King') || npc.templateId.includes('Alpha') || 
+                       npc.templateId.includes('Lich');
+        
+        const bodyColor = isBoss ? '#dc2626' : '#991b1b';
+        const headColor = isBoss ? '#fbbf24' : '#f59e0b';
+
+        // Legs
+        ctx.fillStyle = '#450a0a';
+        ctx.fillRect(x - 5, y + 7, 3, 10);
+        ctx.fillRect(x + 2, y + 7, 3, 10);
 
         // Body
-        const gradient = ctx.createRadialGradient(x - 4, y - 4, 0, x, y, 16);
-        gradient.addColorStop(0, '#f87171');
-        gradient.addColorStop(1, '#991b1b');
-        ctx.fillStyle = gradient;
+        const bodyGradient = ctx.createLinearGradient(x - 8, y - 4, x + 8, y + 8);
+        bodyGradient.addColorStop(0, bodyColor);
+        bodyGradient.addColorStop(1, '#7f1d1d');
+        ctx.fillStyle = bodyGradient;
+        ctx.fillRect(x - 8, y - 4, 16, 12);
+        ctx.strokeStyle = '#450a0a';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 8, y - 4, 16, 12);
+
+        // Arms
+        ctx.fillStyle = bodyColor;
+        ctx.fillRect(x - 11, y - 2, 3, 10);
+        ctx.fillRect(x + 8, y - 2, 3, 10);
+
+        // Head
+        const headGradient = ctx.createRadialGradient(x, y - 10, 0, x, y - 10, 6);
+        headGradient.addColorStop(0, headColor);
+        headGradient.addColorStop(1, '#d97706');
+        ctx.fillStyle = headGradient;
         ctx.beginPath();
-        ctx.arc(x, y, 16, 0, Math.PI * 2);
+        ctx.arc(x, y - 10, 6, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#7f1d1d';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 1;
         ctx.stroke();
 
-        ctx.font = '18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('👹', x, y + 6);
+        // Eyes (red for enemies)
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(x - 2, y - 11, 1.5, 0, Math.PI * 2);
+        ctx.arc(x + 2, y - 11, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Boss crown
+        if (isBoss) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.moveTo(x - 5, y - 16);
+          ctx.lineTo(x - 3, y - 20);
+          ctx.lineTo(x, y - 17);
+          ctx.lineTo(x + 3, y - 20);
+          ctx.lineTo(x + 5, y - 16);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#f59e0b';
+          ctx.stroke();
+        }
 
         // HP bar
         ctx.fillStyle = '#1f2937';
-        ctx.fillRect(x - 18, y - 28, 36, 6);
+        ctx.fillRect(x - 16, y - 26, 32, 5);
         const hpPercent = npc.hp / npc.maxHp;
         ctx.fillStyle = hpPercent > 0.5 ? '#10b981' : hpPercent > 0.25 ? '#f59e0b' : '#ef4444';
-        ctx.fillRect(x - 18, y - 28, 36 * hpPercent, 6);
+        ctx.fillRect(x - 16, y - 26, 32 * hpPercent, 5);
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - 18, y - 28, 36, 6);
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x - 16, y - 26, 32, 5);
 
+        // Name and HP text
+        ctx.fillStyle = isBoss ? '#fca5a5' : '#fecaca';
+        ctx.font = isBoss ? 'bold 11px monospace' : '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(npc.templateId, x, y - 30);
+        
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText(`${npc.hp}/${npc.maxHp}`, x, y + 32);
-
-        ctx.fillStyle = '#fca5a5';
-        ctx.font = '10px monospace';
-        ctx.fillText(npc.templateId, x, y - 32);
+        ctx.font = '9px monospace';
+        ctx.fillText(`${npc.hp}/${npc.maxHp}`, x, y + 30);
       });
 
-      // Other players
+      // Other players - detailed sprites
       ws.players.forEach(player => {
         const x = offsetX + player.x;
         const y = offsetY + player.y;
         if (x < -50 || x > width + 50 || y < -50 || y > height + 50) return;
 
-        ctx.fillStyle = '#3b82f6';
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.beginPath();
-        ctx.arc(x, y, 14, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 18, 12, 4, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#1e40af';
-        ctx.lineWidth = 2;
+
+        // Legs
+        ctx.fillStyle = '#7c3aed';
+        ctx.fillRect(x - 5, y + 7, 3, 10);
+        ctx.fillRect(x + 2, y + 7, 3, 10);
+
+        // Body
+        const bodyGradient = ctx.createLinearGradient(x - 8, y - 4, x + 8, y + 8);
+        bodyGradient.addColorStop(0, '#8b5cf6');
+        bodyGradient.addColorStop(1, '#6d28d9');
+        ctx.fillStyle = bodyGradient;
+        ctx.fillRect(x - 8, y - 4, 16, 12);
+        ctx.strokeStyle = '#5b21b6';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 8, y - 4, 16, 12);
+
+        // Arms
+        ctx.fillStyle = '#8b5cf6';
+        ctx.fillRect(x - 11, y - 2, 3, 10);
+        ctx.fillRect(x + 8, y - 2, 3, 10);
+
+        // Head
+        const headGradient = ctx.createRadialGradient(x, y - 10, 0, x, y - 10, 6);
+        headGradient.addColorStop(0, '#fcd34d');
+        headGradient.addColorStop(1, '#fbbf24');
+        ctx.fillStyle = headGradient;
+        ctx.beginPath();
+        ctx.arc(x, y - 10, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1;
         ctx.stroke();
 
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px monospace';
+        // Eyes
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(x - 2, py - 11, 1, 0, Math.PI * 2);
+        ctx.arc(x + 2, py - 11, 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Name
+        ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(player.name, x, y - 20);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        const nameWidth = ctx.measureText(player.name).width + 8;
+        ctx.fillRect(x - nameWidth / 2, y - 26, nameWidth, 12);
+        ctx.fillStyle = '#c4b5fd';
+        ctx.fillText(player.name, x, y - 17);
       });
 
       // Attack effects
@@ -747,55 +981,90 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         }
       });
 
-      // Current player
+      // Current player - detailed sprite
       const px = width / 2;
       const py = height / 2;
 
       // Shadow
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.beginPath();
-      ctx.ellipse(px, py + 18, 16, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(px, py + 20, 14, 5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Glow
-      const playerGlow = ctx.createRadialGradient(px, py, 0, px, py, 30);
-      playerGlow.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
-      playerGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
-      ctx.fillStyle = playerGlow;
-      ctx.beginPath();
-      ctx.arc(px, py, 30, 0, Math.PI * 2);
-      ctx.fill();
+      // Legs
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(px - 6, py + 8, 4, 12);
+      ctx.fillRect(px + 2, py + 8, 4, 12);
 
-      // Body
-      const playerGradient = ctx.createRadialGradient(px - 4, py - 4, 0, px, py, 18);
-      playerGradient.addColorStop(0, '#34d399');
-      playerGradient.addColorStop(1, '#047857');
-      ctx.fillStyle = playerGradient;
+      // Body (torso)
+      const bodyGradient = ctx.createLinearGradient(px - 10, py - 5, px + 10, py + 10);
+      bodyGradient.addColorStop(0, '#3b82f6');
+      bodyGradient.addColorStop(1, '#1e40af');
+      ctx.fillStyle = bodyGradient;
+      ctx.fillRect(px - 10, py - 5, 20, 15);
+      
+      // Body outline
+      ctx.strokeStyle = '#1e3a8a';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px - 10, py - 5, 20, 15);
+
+      // Arms
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillRect(px - 14, py - 3, 4, 12);
+      ctx.fillRect(px + 10, py - 3, 4, 12);
+
+      // Head
+      const headGradient = ctx.createRadialGradient(px, py - 12, 0, px, py - 12, 8);
+      headGradient.addColorStop(0, '#fbbf24');
+      headGradient.addColorStop(1, '#f59e0b');
+      ctx.fillStyle = headGradient;
       ctx.beginPath();
-      ctx.arc(px, py, 16, 0, Math.PI * 2);
+      ctx.arc(px, py - 12, 8, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 1;
       ctx.stroke();
 
+      // Eyes
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(px - 3, py - 13, 1.5, 0, Math.PI * 2);
+      ctx.arc(px + 3, py - 13, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Weapon (if equipped)
+      const weapon = ws.players.find(p => p.characterId === char.id);
+      // Draw sword on right side
+      ctx.strokeStyle = '#9ca3af';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px + 12, py);
+      ctx.lineTo(px + 18, py - 10);
+      ctx.stroke();
+      ctx.fillStyle = '#6b7280';
+      ctx.fillRect(px + 11, py - 1, 3, 4);
+
       // Name plate
-      ctx.font = 'bold 12px monospace';
-      const nameWidth = ctx.measureText(char.name).width + 16;
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      ctx.fillRect(px - nameWidth / 2, py - 36, nameWidth, 18);
+      ctx.font = 'bold 11px monospace';
+      const nameWidth = ctx.measureText(char.name).width + 12;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(px - nameWidth / 2, py - 32, nameWidth, 14);
       ctx.strokeStyle = '#10b981';
       ctx.lineWidth = 1;
-      ctx.strokeRect(px - nameWidth / 2, py - 36, nameWidth, 18);
+      ctx.strokeRect(px - nameWidth / 2, py - 32, nameWidth, 14);
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'center';
-      ctx.fillText(char.name, px, py - 23);
+      ctx.fillText(char.name, px, py - 22);
 
       // HP bar
       const charHpPercent = char.hp / char.maxHp;
       ctx.fillStyle = '#1f2937';
-      ctx.fillRect(px - 20, py + 22, 40, 5);
+      ctx.fillRect(px - 18, py + 24, 36, 4);
       ctx.fillStyle = charHpPercent > 0.5 ? '#10b981' : charHpPercent > 0.25 ? '#f59e0b' : '#ef4444';
-      ctx.fillRect(px - 20, py + 22, 40 * charHpPercent, 5);
+      ctx.fillRect(px - 18, py + 24, 36 * charHpPercent, 4);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(px - 18, py + 24, 36, 4);
 
       ctx.textAlign = 'left';
 
