@@ -198,15 +198,22 @@ function seedData() {
   ];
   recipes.forEach(r => state.recipes.set(r.id, r));
 
-  // Resource nodes in hub
+  // Resource nodes in hub - больше разнообразия
   const hubNodes = [
     { x: 100, y: 100, templateId: 'tpl_wood' },
     { x: 150, y: 50, templateId: 'tpl_wood' },
+    { x: 180, y: 120, templateId: 'tpl_wood' },
     { x: -100, y: 100, templateId: 'tpl_stone' },
     { x: -150, y: -50, templateId: 'tpl_stone' },
+    { x: -120, y: 80, templateId: 'tpl_stone' },
     { x: 200, y: -100, templateId: 'tpl_iron' },
+    { x: 250, y: -80, templateId: 'tpl_iron' },
     { x: -200, y: 150, templateId: 'tpl_herb' },
+    { x: -180, y: 180, templateId: 'tpl_herb' },
     { x: 50, y: -200, templateId: 'tpl_herb' },
+    { x: 80, y: -180, templateId: 'tpl_herb' },
+    { x: -50, y: -150, templateId: 'tpl_wood' },
+    { x: 300, y: 50, templateId: 'tpl_stone' },
   ];
   hubNodes.forEach(n => {
     const id = uuid();
@@ -214,10 +221,18 @@ function seedData() {
   });
 
   // NPCs in raid zone
+  // NPCs in raid zone - больше разнообразия
   const raidNpcs = [
     { name: 'Goblin', x: 300, y: 300, hp: 50, maxHp: 50 },
+    { name: 'Goblin', x: 350, y: 280, hp: 50, maxHp: 50 },
     { name: 'Orc', x: 400, y: 400, hp: 100, maxHp: 100 },
+    { name: 'Orc', x: 450, y: 380, hp: 100, maxHp: 100 },
     { name: 'Wolf', x: 250, y: 350, hp: 30, maxHp: 30 },
+    { name: 'Wolf', x: 280, y: 370, hp: 30, maxHp: 30 },
+    { name: 'Wolf', x: 230, y: 330, hp: 30, maxHp: 30 },
+    { name: 'Troll', x: 500, y: 500, hp: 200, maxHp: 200 },
+    { name: 'Skeleton', x: 150, y: 200, hp: 40, maxHp: 40 },
+    { name: 'Skeleton', x: 180, y: 220, hp: 40, maxHp: 40 },
   ];
   raidNpcs.forEach(n => {
     const id = uuid();

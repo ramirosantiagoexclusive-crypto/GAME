@@ -20,6 +20,7 @@ interface Ability {
   lastUsed: number;
   color: string;
   range: number;
+  unlockLevel: number;
 }
 
 interface MoveTarget {
@@ -51,11 +52,12 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
   const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
   const [attackEffects, setAttackEffects] = useState<AttackEffect[]>([]);
   const [abilities, setAbilities] = useState<Ability[]>([
-    { key: 'Q', name: 'Удар', icon: '⚔️', cooldown: 2, lastUsed: 0, color: '#ef4444', range: 60 },
-    { key: 'W', name: 'Рывок', icon: '💨', cooldown: 5, lastUsed: 0, color: '#3b82f6', range: 150 },
-    { key: 'E', name: 'Щит', icon: '🛡️', cooldown: 8, lastUsed: 0, color: '#10b981', range: 0 },
-    { key: 'R', name: 'Ульта', icon: '💥', cooldown: 30, lastUsed: 0, color: '#a855f7', range: 200 },
+    { key: 'Q', name: 'Удар', icon: '⚔️', cooldown: 2, lastUsed: 0, color: '#ef4444', range: 60, unlockLevel: 1 },
+    { key: 'E', name: 'Щит', icon: '🛡️', cooldown: 8, lastUsed: 0, color: '#10b981', range: 0, unlockLevel: 3 },
+    { key: 'R', name: 'Ульта', icon: '💥', cooldown: 30, lastUsed: 0, color: '#a855f7', range: 200, unlockLevel: 5 },
   ]);
+  const [playerLevel, setPlayerLevel] = useState(1);
+  const [playerXP, setPlayerXP] = useState(0);
 
   // Refs for game loop (avoid stale closures)
   const localPosRef = useRef({ x: character.x, y: character.y });
@@ -69,6 +71,35 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
   const selectedTargetRef = useRef(selectedTarget);
   const moveTargetRef = useRef<MoveTarget | null>(null);
   const attackEffectsRef = useRef<AttackEffect[]>([]);
+  
+  // NPC AI state (stored separately from worldState)
+  const npcAIRef = useRef<Map<string, {
+    homeX: number;
+    homeY: number;
+    lastAttack: number;
+    patrolTarget: { x: number; y: number } | null;
+  }>>(new Map());
+
+  // Initialize NPC AI data when NPCs change
+  useEffect(() => {
+    worldState.npcs.forEach(npc => {
+      if (!npcAIRef.current.has(npc.id)) {
+        npcAIRef.current.set(npc.id, {
+          homeX: npc.x,
+          homeY: npc.y,
+          lastAttack: 0,
+          patrolTarget: null,
+        });
+      }
+    });
+    // Clean up removed NPCs
+    const currentIds = new Set(worldState.npcs.map(n => n.id));
+    for (const id of npcAIRef.current.keys()) {
+      if (!currentIds.has(id)) {
+        npcAIRef.current.delete(id);
+      }
+    }
+  }, [worldState.npcs]);
 
   // Keep refs in sync with state
   useEffect(() => { worldStateRef.current = worldState; }, [worldState]);
@@ -96,7 +127,8 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         e.preventDefault();
       }
 
-      if (['q', 'w', 'e', 'r'].includes(key) && !e.repeat) {
+      // Способности только на Q, E, R (W зарезервирована для движения)
+      if (['q', 'e', 'r'].includes(key) && !e.repeat) {
         useAbility(key.toUpperCase());
       }
 
@@ -126,6 +158,12 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
     const now = Date.now();
     setAbilities(prev => prev.map(a => {
       if (a.key === key) {
+        // Проверка разблокировки
+        if (a.unlockLevel > playerLevel) {
+          console.log(`Способность ${a.name} заблокирована! Нужен уровень ${a.unlockLevel}`);
+          return a;
+        }
+        
         const elapsed = (now - a.lastUsed) / 1000;
         if (elapsed >= a.cooldown) {
           onAbility?.(key);
@@ -141,7 +179,7 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
               toY: target.y,
               startTime: now,
               duration: 400,
-              type: key === 'R' ? 'magic' : key === 'W' ? 'projectile' : 'slash',
+              type: key === 'R' ? 'magic' : 'slash',
               color: a.color,
             };
             setAttackEffects(prev => [...prev, effect]);
@@ -155,7 +193,28 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       }
       return a;
     }));
-  }, [onAbility]);
+  }, [onAbility, playerLevel]);
+
+  // Система опыта - добавляем XP за убийство NPC
+  useEffect(() => {
+    const prevNpcCount = worldStateRef.current.npcs.length;
+    return () => {
+      const currentNpcCount = worldState.npcs.length;
+      if (currentNpcCount < prevNpcCount) {
+        // NPC убит - даем XP
+        const xpGained = 20 + Math.floor(Math.random() * 10);
+        setPlayerXP(prev => {
+          const newXP = prev + xpGained;
+          const xpToNextLevel = playerLevel * 100;
+          if (newXP >= xpToNextLevel) {
+            setPlayerLevel(l => l + 1);
+            return newXP - xpToNextLevel;
+          }
+          return newXP;
+        });
+      }
+    };
+  }, [worldState.npcs.length, playerLevel]);
 
   // MAIN GAME LOOP — handles movement AND rendering
   useEffect(() => {
@@ -182,7 +241,62 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       const width = canvas.width;
       const height = canvas.height;
 
-      // ============ MOVEMENT LOGIC ============
+      // ============ NPC AI ============
+      ws.npcs.forEach(npc => {
+        const ai = npcAIRef.current.get(npc.id);
+        if (!ai) return;
+        
+        const dx = char.x - npc.x;
+        const dy = char.y - npc.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Агрессия если игрок рядом
+        if (dist < 150 && dist > 40) {
+          // Движение к игроку
+          npc.x += (dx / dist) * 1.5;
+          npc.y += (dy / dist) * 1.5;
+        } else if (dist <= 40) {
+          // Атака если очень близко (каждые 1.5 сек)
+          if (now - ai.lastAttack > 1500) {
+            ai.lastAttack = now;
+            // Визуальный эффект атаки
+            const effect: AttackEffect = {
+              id: Math.random().toString(),
+              fromX: npc.x,
+              fromY: npc.y,
+              toX: char.x,
+              toY: char.y,
+              startTime: now,
+              duration: 300,
+              type: 'slash',
+              color: '#ef4444',
+            };
+            setAttackEffects(prev => [...prev, effect]);
+            setTimeout(() => {
+              setAttackEffects(prev => prev.filter(e => e.id !== effect.id));
+            }, 400);
+          }
+        } else {
+          // Патрулирование
+          if (!ai.patrolTarget || Math.random() < 0.005) {
+            ai.patrolTarget = {
+              x: ai.homeX + (Math.random() - 0.5) * 100,
+              y: ai.homeY + (Math.random() - 0.5) * 100,
+            };
+          }
+          if (ai.patrolTarget) {
+            const pdx = ai.patrolTarget.x - npc.x;
+            const pdy = ai.patrolTarget.y - npc.y;
+            const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+            if (pdist > 5) {
+              npc.x += (pdx / pdist) * 0.8;
+              npc.y += (pdy / pdist) * 0.8;
+            }
+          }
+        }
+      });
+
+      // ============ PLAYER MOVEMENT LOGIC ============
 
       let moved = false;
       let kx = 0, ky = 0;
@@ -277,12 +391,66 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       const offsetX = width / 2 - playerX;
       const offsetY = height / 2 - playerY;
 
-      // Clear
-      ctx.fillStyle = '#0a0e1a';
+      // Clear with gradient background
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+      bgGradient.addColorStop(0, '#0a1628');
+      bgGradient.addColorStop(1, '#0f172a');
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Grid
-      ctx.strokeStyle = '#1a2030';
+      // Ground texture - grass patches
+      const grassSeed = Math.floor(playerX / 200) * 1000 + Math.floor(playerY / 200);
+      for (let i = 0; i < 30; i++) {
+        const seed = (grassSeed + i * 137) % 10000;
+        const gx = offsetX + ((seed * 73) % 1000) - 500;
+        const gy = offsetY + ((seed * 137) % 1000) - 500;
+        if (gx > -50 && gx < width + 50 && gy > -50 && gy < height + 50) {
+          ctx.fillStyle = `rgba(34, 197, 94, ${0.05 + (seed % 10) * 0.01})`;
+          ctx.beginPath();
+          ctx.ellipse(gx, gy, 15 + (seed % 10), 8 + (seed % 5), (seed % 3) * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Decorative elements - trees, rocks
+      const decorSeed = Math.floor(playerX / 300) * 1000 + Math.floor(playerY / 300);
+      for (let i = 0; i < 15; i++) {
+        const seed = (decorSeed + i * 251) % 10000;
+        const dx = offsetX + ((seed * 97) % 1200) - 600;
+        const dy = offsetY + ((seed * 173) % 1200) - 600;
+        if (dx > -50 && dx < width + 50 && dy > -50 && dy < height + 50) {
+          if (seed % 3 === 0) {
+            // Tree
+            ctx.fillStyle = '#1e3a1e';
+            ctx.beginPath();
+            ctx.arc(dx, dy - 15, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#4a2c17';
+            ctx.fillRect(dx - 3, dy, 6, 15);
+          } else if (seed % 3 === 1) {
+            // Rock
+            ctx.fillStyle = '#374151';
+            ctx.beginPath();
+            ctx.ellipse(dx, dy, 12, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          } else {
+            // Bush
+            ctx.fillStyle = '#166534';
+            ctx.beginPath();
+            ctx.arc(dx, dy, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(dx + 6, dy - 3, 8, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      // Grid (subtle)
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.3)';
       ctx.lineWidth = 1;
       const gridSize = 50;
       const startX = Math.floor((playerX - width / 2) / gridSize) * gridSize;
@@ -661,8 +829,10 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
     }
   }, [onMove]);
 
-  // Canvas click handler
+  // Canvas click handler - только ЛКМ
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button !== 0) return; // Только левая кнопка
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -676,19 +846,9 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
     const worldX = playerX + (clickX - canvas.width / 2);
     const worldY = playerY + (clickY - canvas.height / 2);
 
-    // Right click = move
-    if (e.button === 2) {
-      e.preventDefault();
-      targetPosRef.current = { x: worldX, y: worldY };
-      attackTargetRef.current = null;
-      setSelectedTarget(null);
-      setMoveTarget({ x: worldX, y: worldY, time: Date.now() });
-      return;
-    }
-
     const ws = worldStateRef.current;
 
-    // NPC
+    // NPC - выбор цели
     const clickedNpc = ws.npcs.find(npc => {
       const dx = npc.x - worldX;
       const dy = npc.y - worldY;
@@ -701,22 +861,36 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       return;
     }
 
-    // Loot
+    // Loot (проверяем дистанцию до игрока)
     const clickedLoot = ws.loot.find(l => {
       const dx = l.x - worldX;
       const dy = l.y - worldY;
-      return Math.sqrt(dx * dx + dy * dy) < 20;
+      const clickDist = Math.sqrt(dx * dx + dy * dy);
+      
+      const playerDist = Math.sqrt(
+        Math.pow(l.x - localPosRef.current.x, 2) + 
+        Math.pow(l.y - localPosRef.current.y, 2)
+      );
+      
+      return clickDist < 20 && playerDist < 50;
     });
     if (clickedLoot) {
       onPickup(clickedLoot.id);
       return;
     }
 
-    // Resource node
+    // Resource node (проверяем дистанцию)
     const clickedNode = ws.nodes.find(n => {
       const dx = n.x - worldX;
       const dy = n.y - worldY;
-      return Math.sqrt(dx * dx + dy * dy) < 20;
+      const clickDist = Math.sqrt(dx * dx + dy * dy);
+      
+      const playerDist = Math.sqrt(
+        Math.pow(n.x - localPosRef.current.x, 2) + 
+        Math.pow(n.y - localPosRef.current.y, 2)
+      );
+      
+      return clickDist < 20 && playerDist < 60;
     });
     if (clickedNode && !clickedNode.isDepleted) {
       onHarvest(clickedNode.id);
@@ -835,12 +1009,13 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
 
           {!isMobile && (
             <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-[10px] text-gray-300 space-y-0.5 border border-gray-700">
-              <div className="text-emerald-400 font-bold mb-1">✨ MOBA-стиль активно!</div>
-              <div><span className="text-emerald-400 font-bold">ЛКМ</span> — выбор/движение</div>
-              <div><span className="text-emerald-400 font-bold">ПКМ</span> — движение</div>
+              <div className="text-emerald-400 font-bold mb-1">✨ MOBA-стиль v2.0</div>
+              <div><span className="text-emerald-400 font-bold">ЛКМ</span> — выбор цели/взаимодействие</div>
+              <div><span className="text-emerald-400 font-bold">ЛКМ по земле</span> — движение</div>
               <div><span className="text-emerald-400 font-bold">WASD</span> — движение</div>
-              <div><span className="text-emerald-400 font-bold">Q/W/E/R</span> — способности</div>
+              <div><span className="text-emerald-400 font-bold">Q/E/R</span> — способности</div>
               <div><span className="text-emerald-400 font-bold">Space</span> — атака цели</div>
+              <div className="text-gray-500 mt-1">Ур. {playerLevel} • XP: {playerXP}</div>
             </div>
           )}
         </div>
@@ -855,28 +1030,34 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
               const elapsed = (now - ability.lastUsed) / 1000;
               const onCooldown = elapsed < ability.cooldown;
               const cdPercent = onCooldown ? 1 - elapsed / ability.cooldown : 0;
+              const isLocked = ability.unlockLevel > playerLevel;
 
               return (
                 <button
                   key={ability.key}
                   onClick={() => useAbility(ability.key)}
-                  disabled={onCooldown}
+                  disabled={onCooldown || isLocked}
                   className="relative group"
-                  title={`${ability.name} (${ability.key})`}
+                  title={isLocked ? `${ability.name} — нужен ур. ${ability.unlockLevel}` : `${ability.name} (${ability.key})`}
                 >
                   <div
                     className="w-16 h-16 rounded-lg flex flex-col items-center justify-center text-2xl font-bold shadow-lg transition-all border-2"
                     style={{
-                      background: onCooldown ? '#1f2937' : `linear-gradient(135deg, ${ability.color}, ${ability.color}aa)`,
-                      borderColor: onCooldown ? '#374151' : ability.color,
-                      opacity: onCooldown ? 0.6 : 1,
-                      boxShadow: onCooldown ? 'none' : `0 0 15px ${ability.color}40`,
+                      background: isLocked ? '#111827' : onCooldown ? '#1f2937' : `linear-gradient(135deg, ${ability.color}, ${ability.color}aa)`,
+                      borderColor: isLocked ? '#1f2937' : onCooldown ? '#374151' : ability.color,
+                      opacity: isLocked ? 0.4 : onCooldown ? 0.6 : 1,
+                      boxShadow: isLocked ? 'none' : onCooldown ? 'none' : `0 0 15px ${ability.color}40`,
                     }}
                   >
-                    <span>{ability.icon}</span>
+                    <span>{isLocked ? '🔒' : ability.icon}</span>
                     <span className="text-[10px] text-white/80 font-mono">{ability.key}</span>
                   </div>
-                  {onCooldown && (
+                  {isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-[9px] text-gray-400 font-bold">Ур.{ability.unlockLevel}</span>
+                    </div>
+                  )}
+                  {onCooldown && !isLocked && (
                     <>
                       <div
                         className="absolute inset-0 bg-black/70 rounded-lg pointer-events-none"
@@ -888,7 +1069,7 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
                     </>
                   )}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-black/90 text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-700">
-                    {ability.name} • {ability.cooldown}s
+                    {isLocked ? `🔒 Нужен ур. ${ability.unlockLevel}` : `${ability.name} • ${ability.cooldown}s`}
                   </div>
                 </button>
               );
