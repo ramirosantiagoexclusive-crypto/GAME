@@ -58,10 +58,8 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
   ]);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [playerXP, setPlayerXP] = useState(0);
-  const [playerHunger, setPlayerHunger] = useState(100); // 0-100, 0 = голодная смерть
   const [playerStamina, setPlayerStamina] = useState(100); // 0-100, влияет на бег
   const [isRunning, setIsRunning] = useState(false);
-  const [weather, setWeather] = useState<'clear' | 'rain' | 'fog'>('clear');
   
   // Статичные декорации (генерируются один раз)
   const decorationsRef = useRef<Array<{
@@ -71,73 +69,9 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
     variant: number;
   }>>([]);
   
-  // Частицы (дождь, снег, и т.д.)
-  const particlesRef = useRef<Array<{
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    life: number;
-    maxLife: number;
-    type: 'rain' | 'snow' | 'dust';
-  }>>([]);
+
   
-  // Инициализация частиц для погоды
-  useEffect(() => {
-    // Меняем погоду каждые 60 секунд
-    const weatherInterval = setInterval(() => {
-      const weathers: Array<'clear' | 'rain' | 'fog'> = ['clear', 'rain', 'fog'];
-      setWeather(weathers[Math.floor(Math.random() * weathers.length)]);
-    }, 60000);
-    
-    return () => clearInterval(weatherInterval);
-  }, []);
-  
-  // Обновление частиц
-  useEffect(() => {
-    const updateParticles = () => {
-      if (weather === 'rain') {
-        // Добавляем капли дождя
-        for (let i = 0; i < 3; i++) {
-          particlesRef.current.push({
-            x: Math.random() * 1000 - 500,
-            y: -500,
-            vx: -1,
-            vy: 10,
-            life: 100,
-            maxLife: 100,
-            type: 'rain',
-          });
-        }
-      } else if (weather === 'fog') {
-        // Добавляем частицы тумана
-        if (Math.random() < 0.1) {
-          particlesRef.current.push({
-            x: Math.random() * 1000 - 500,
-            y: Math.random() * 1000 - 500,
-            vx: 0.5,
-            vy: 0,
-            life: 200,
-            maxLife: 200,
-            type: 'dust',
-          });
-        }
-      }
-      
-      // Обновляем частицы
-      particlesRef.current = particlesRef.current.filter(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-        return p.life > 0;
-      });
-      
-      requestAnimationFrame(updateParticles);
-    };
-    
-    const animFrame = requestAnimationFrame(updateParticles);
-    return () => cancelAnimationFrame(animFrame);
-  }, [weather]);
+
   
   // Генерируем декорации один раз при монтировании
   useEffect(() => {
@@ -454,15 +388,6 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       } else {
         // Regenerate stamina when not moving
         setPlayerStamina(prev => Math.min(100, prev + 0.2));
-      }
-
-      // Hunger decreases over time
-      if (now % 1000 < 50) { // Every second
-        setPlayerHunger(prev => Math.max(0, prev - 0.1));
-        if (playerHunger <= 0) {
-          // Starving damage
-          char.hp = Math.max(0, char.hp - 0.5);
-        }
       }
 
       // Click-to-move (lerp)
@@ -1252,16 +1177,6 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       ctx.lineWidth = 0.5;
       ctx.strokeRect(px - 18, py + 24, 36, 4);
 
-      // Hunger bar (orange)
-      const hungerPercent = playerHunger / 100;
-      ctx.fillStyle = '#1f2937';
-      ctx.fillRect(px - 18, py + 30, 36, 3);
-      ctx.fillStyle = hungerPercent > 0.5 ? '#f97316' : hungerPercent > 0.25 ? '#ea580c' : '#dc2626';
-      ctx.fillRect(px - 18, py + 30, 36 * hungerPercent, 3);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(px - 18, py + 30, 36, 3);
-
       // Stamina bar (blue)
       const staminaPercent = playerStamina / 100;
       ctx.fillStyle = '#1f2937';
@@ -1280,52 +1195,6 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         ctx.fillText('🏃 RUN', px, py + 45);
       }
 
-      ctx.textAlign = 'left';
-
-      // ============ WEATHER EFFECTS ============
-      
-      // Render particles
-      particlesRef.current.forEach(particle => {
-        const px = offsetX + particle.x;
-        const py = offsetY + particle.y;
-        
-        if (px < -50 || px > width + 50 || py < -50 || py > height + 50) return;
-        
-        const alpha = particle.life / particle.maxLife;
-        
-        if (particle.type === 'rain') {
-          ctx.strokeStyle = `rgba(100, 150, 255, ${alpha * 0.6})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(px, py);
-          ctx.lineTo(px + particle.vx * 2, py + particle.vy * 2);
-          ctx.stroke();
-        } else if (particle.type === 'dust') {
-          ctx.fillStyle = `rgba(200, 200, 200, ${alpha * 0.3})`;
-          ctx.beginPath();
-          ctx.arc(px, py, 20, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
-      
-      // Fog overlay
-      if (weather === 'fog') {
-        ctx.fillStyle = 'rgba(200, 200, 200, 0.15)';
-        ctx.fillRect(0, 0, width, height);
-      }
-      
-      // Rain overlay
-      if (weather === 'rain') {
-        ctx.fillStyle = 'rgba(50, 50, 100, 0.1)';
-        ctx.fillRect(0, 0, width, height);
-      }
-      
-      // Weather indicator
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.font = '12px monospace';
-      ctx.textAlign = 'right';
-      const weatherIcon = weather === 'clear' ? '☀️' : weather === 'rain' ? '🌧️' : '🌫️';
-      ctx.fillText(weatherIcon, width - 10, 20);
       ctx.textAlign = 'left';
 
       animationFrameRef.current = requestAnimationFrame(loop);
