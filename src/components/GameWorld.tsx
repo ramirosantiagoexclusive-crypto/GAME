@@ -58,6 +58,41 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
   ]);
   const [playerLevel, setPlayerLevel] = useState(1);
   const [playerXP, setPlayerXP] = useState(0);
+  const [playerStamina, setPlayerStamina] = useState(100); // 0-100, влияет на бег
+  const [isRunning, setIsRunning] = useState(false);
+  
+  // Статичные декорации (генерируются один раз)
+  const decorationsRef = useRef<Array<{
+    x: number;
+    y: number;
+    type: 'tree' | 'rock' | 'bush' | 'flower';
+    variant: number;
+  }>>([]);
+  
+
+  
+
+  
+  // Генерируем декорации один раз при монтировании
+  useEffect(() => {
+    if (decorationsRef.current.length === 0) {
+      const decorations: Array<{
+        x: number;
+        y: number;
+        type: 'tree' | 'rock' | 'bush' | 'flower';
+        variant: number;
+      }> = [];
+      // Генерируем 100 декораций в мире
+      for (let i = 0; i < 100; i++) {
+        const seed = i * 137 + 42;
+        const x = ((seed * 73) % 2000) - 1000;
+        const y = ((seed * 173) % 2000) - 1000;
+        const type = seed % 4 === 0 ? 'tree' : seed % 4 === 1 ? 'rock' : seed % 4 === 2 ? 'bush' : 'flower';
+        decorations.push({ x, y, type, variant: seed % 3 });
+      }
+      decorationsRef.current = decorations;
+    }
+  }, []);
 
   // Refs for game loop (avoid stale closures)
   const localPosRef = useRef({ x: character.x, y: character.y });
@@ -250,16 +285,32 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         const dy = char.y - npc.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        // Агрессия если игрок рядом
-        if (dist < 150 && dist > 40) {
-          // Движение к игроку
-          npc.x += (dx / dist) * 1.5;
-          npc.y += (dy / dist) * 1.5;
-        } else if (dist <= 40) {
-          // Атака если очень близко (каждые 1.5 сек)
-          if (now - ai.lastAttack > 1500) {
+        // Determine NPC type for behavior
+        const isRanged = npc.templateId.includes('Skeleton') || npc.templateId.includes('Lich');
+        const isBoss = npc.templateId.includes('Chief') || npc.templateId.includes('Warlord') || 
+                       npc.templateId.includes('King') || npc.templateId.includes('Alpha') || 
+                       npc.templateId.includes('Lich');
+        
+        // Aggression range based on type
+        const aggroRange = isBoss ? 200 : 150;
+        const attackRange = isRanged ? 120 : 40;
+        
+        // Aggression if player is nearby
+        if (dist < aggroRange && dist > attackRange) {
+          // Move towards player
+          const speed = isBoss ? 2.0 : 1.5;
+          npc.x += (dx / dist) * speed;
+          npc.y += (dy / dist) * speed;
+        } else if (dist <= attackRange) {
+          // Attack if in range
+          const attackCooldown = isBoss ? 1000 : 1500;
+          if (now - ai.lastAttack > attackCooldown) {
             ai.lastAttack = now;
-            // Визуальный эффект атаки
+            
+            // Visual attack effect
+            const effectType = isRanged ? 'projectile' : 'slash';
+            const effectColor = isBoss ? '#fbbf24' : '#ef4444';
+            
             const effect: AttackEffect = {
               id: Math.random().toString(),
               fromX: npc.x,
@@ -267,17 +318,17 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
               toX: char.x,
               toY: char.y,
               startTime: now,
-              duration: 300,
-              type: 'slash',
-              color: '#ef4444',
+              duration: isRanged ? 500 : 300,
+              type: effectType,
+              color: effectColor,
             };
             setAttackEffects(prev => [...prev, effect]);
             setTimeout(() => {
               setAttackEffects(prev => prev.filter(e => e.id !== effect.id));
-            }, 400);
+            }, isRanged ? 600 : 400);
           }
         } else {
-          // Патрулирование
+          // Patrol
           if (!ai.patrolTarget || Math.random() < 0.005) {
             ai.patrolTarget = {
               x: ai.homeX + (Math.random() - 0.5) * 100,
@@ -289,8 +340,9 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
             const pdy = ai.patrolTarget.y - npc.y;
             const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
             if (pdist > 5) {
-              npc.x += (pdx / pdist) * 0.8;
-              npc.y += (pdy / pdist) * 0.8;
+              const patrolSpeed = isBoss ? 1.2 : 0.8;
+              npc.x += (pdx / pdist) * patrolSpeed;
+              npc.y += (pdy / pdist) * patrolSpeed;
             }
           }
         }
@@ -300,6 +352,10 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
 
       let moved = false;
       let kx = 0, ky = 0;
+
+      // Check if running (Shift key)
+      const isRunningNow = keysRef.current.has('shift');
+      setIsRunning(isRunningNow);
 
       // Keyboard movement
       if (keysRef.current.has('w') || keysRef.current.has('arrowup')) ky -= 1;
@@ -315,11 +371,23 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
         kx /= length;
         ky /= length;
 
-        localPosRef.current.x += kx * moveSpeed;
-        localPosRef.current.y += ky * moveSpeed;
+        // Apply speed modifier based on running and stamina
+        let currentSpeed = moveSpeed;
+        if (isRunningNow && playerStamina > 0) {
+          currentSpeed = moveSpeed * 1.8; // Running is 80% faster
+          setPlayerStamina(prev => Math.max(0, prev - 0.5)); // Drain stamina
+        } else if (isRunningNow && playerStamina <= 0) {
+          currentSpeed = moveSpeed * 0.7; // Slow when exhausted
+        }
+
+        localPosRef.current.x += kx * currentSpeed;
+        localPosRef.current.y += ky * currentSpeed;
         localPosRef.current.x = Math.max(-500, Math.min(500, localPosRef.current.x));
         localPosRef.current.y = Math.max(-500, Math.min(500, localPosRef.current.y));
         moved = true;
+      } else {
+        // Regenerate stamina when not moving
+        setPlayerStamina(prev => Math.min(100, prev + 0.2));
       }
 
       // Click-to-move (lerp)
@@ -398,56 +466,112 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Ground texture - grass patches
-      const grassSeed = Math.floor(playerX / 200) * 1000 + Math.floor(playerY / 200);
-      for (let i = 0; i < 30; i++) {
-        const seed = (grassSeed + i * 137) % 10000;
-        const gx = offsetX + ((seed * 73) % 1000) - 500;
-        const gy = offsetY + ((seed * 137) % 1000) - 500;
-        if (gx > -50 && gx < width + 50 && gy > -50 && gy < height + 50) {
-          ctx.fillStyle = `rgba(34, 197, 94, ${0.05 + (seed % 10) * 0.01})`;
+      // Static decorations (don't move with camera)
+      decorationsRef.current.forEach(decor => {
+        const dx = offsetX + decor.x;
+        const dy = offsetY + decor.y;
+        
+        // Check visibility
+        if (dx < -50 || dx > width + 50 || dy < -50 || dy > height + 50) return;
+        
+        if (decor.type === 'tree') {
+          // Tree shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
           ctx.beginPath();
-          ctx.ellipse(gx, gy, 15 + (seed % 10), 8 + (seed % 5), (seed % 3) * 0.5, 0, Math.PI * 2);
+          ctx.ellipse(dx + 5, dy + 20, 15, 5, 0, 0, Math.PI * 2);
           ctx.fill();
-        }
-      }
-
-      // Decorative elements - trees, rocks
-      const decorSeed = Math.floor(playerX / 300) * 1000 + Math.floor(playerY / 300);
-      for (let i = 0; i < 15; i++) {
-        const seed = (decorSeed + i * 251) % 10000;
-        const dx = offsetX + ((seed * 97) % 1200) - 600;
-        const dy = offsetY + ((seed * 173) % 1200) - 600;
-        if (dx > -50 && dx < width + 50 && dy > -50 && dy < height + 50) {
-          if (seed % 3 === 0) {
-            // Tree
-            ctx.fillStyle = '#1e3a1e';
+          
+          // Trunk
+          ctx.fillStyle = '#4a2c17';
+          ctx.fillRect(dx - 4, dy, 8, 20);
+          ctx.strokeStyle = '#2d1810';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(dx - 4, dy, 8, 20);
+          
+          // Crown (multiple circles for volume)
+          const treeColors = ['#1e3a1e', '#166534', '#15803d'];
+          ctx.fillStyle = treeColors[decor.variant];
+          ctx.beginPath();
+          ctx.arc(dx, dy - 10, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(dx - 8, dy - 5, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(dx + 8, dy - 5, 12, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Highlight on crown
+          ctx.fillStyle = 'rgba(134, 239, 172, 0.3)';
+          ctx.beginPath();
+          ctx.arc(dx - 5, dy - 15, 6, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (decor.type === 'rock') {
+          // Rock shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.beginPath();
+          ctx.ellipse(dx + 3, dy + 8, 12, 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Rock
+          const rockColors = ['#374151', '#4b5563', '#6b7280'];
+          ctx.fillStyle = rockColors[decor.variant];
+          ctx.beginPath();
+          ctx.ellipse(dx, dy, 12, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#1f2937';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          // Highlight
+          ctx.fillStyle = 'rgba(209, 213, 219, 0.4)';
+          ctx.beginPath();
+          ctx.ellipse(dx - 3, dy - 2, 4, 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (decor.type === 'bush') {
+          // Bush shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+          ctx.beginPath();
+          ctx.ellipse(dx + 3, dy + 10, 10, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Bush
+          const bushColors = ['#166534', '#15803d', '#16a34a'];
+          ctx.fillStyle = bushColors[decor.variant];
+          ctx.beginPath();
+          ctx.arc(dx, dy, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(dx + 6, dy - 3, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(dx - 5, dy - 2, 7, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (decor.type === 'flower') {
+          // Flower
+          const flowerColors = ['#ec4899', '#f472b6', '#a855f7', '#3b82f6'];
+          ctx.fillStyle = flowerColors[decor.variant];
+          ctx.beginPath();
+          ctx.arc(dx, dy, 3, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Petals
+          for (let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2;
+            const px = dx + Math.cos(angle) * 4;
+            const py = dy + Math.sin(angle) * 4;
             ctx.beginPath();
-            ctx.arc(dx, dy - 15, 18, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#4a2c17';
-            ctx.fillRect(dx - 3, dy, 6, 15);
-          } else if (seed % 3 === 1) {
-            // Rock
-            ctx.fillStyle = '#374151';
-            ctx.beginPath();
-            ctx.ellipse(dx, dy, 12, 8, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#1f2937';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          } else {
-            // Bush
-            ctx.fillStyle = '#166534';
-            ctx.beginPath();
-            ctx.arc(dx, dy, 10, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(dx + 6, dy - 3, 8, 0, Math.PI * 2);
+            ctx.arc(px, py, 2, 0, Math.PI * 2);
             ctx.fill();
           }
+          
+          // Center
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(dx, dy, 1.5, 0, Math.PI * 2);
+          ctx.fill();
         }
-      }
+      });
 
       // Hub buildings and decorations
       if (char.zone === 'hub') {
@@ -578,20 +702,7 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
           ctx.fill();
         });
 
-        // Flowers
-        for (let i = 0; i < 20; i++) {
-          const seed = (decorSeed + i * 73) % 1000;
-          const fx = offsetX + ((seed * 37) % 400) - 200;
-          const fy = offsetY + ((seed * 91) % 400) - 200;
-          
-          if (fx > -50 && fx < width + 50 && fy > -50 && fy < height + 50) {
-            const colors = ['#ec4899', '#f472b6', '#a855f7', '#3b82f6'];
-            ctx.fillStyle = colors[seed % colors.length];
-            ctx.beginPath();
-            ctx.arc(fx, fy, 2, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
+        // Flowers are now part of static decorations
       }
 
       // Grid (subtle)
@@ -1065,6 +1176,24 @@ export function GameWorld({ character, worldState, onMove, onPickup, onHarvest, 
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.5;
       ctx.strokeRect(px - 18, py + 24, 36, 4);
+
+      // Stamina bar (blue)
+      const staminaPercent = playerStamina / 100;
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(px - 18, py + 35, 36, 3);
+      ctx.fillStyle = staminaPercent > 0.5 ? '#3b82f6' : staminaPercent > 0.25 ? '#2563eb' : '#1d4ed8';
+      ctx.fillRect(px - 18, py + 35, 36 * staminaPercent, 3);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(px - 18, py + 35, 36, 3);
+
+      // Running indicator
+      if (isRunning) {
+        ctx.fillStyle = '#60a5fa';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏃 RUN', px, py + 45);
+      }
 
       ctx.textAlign = 'left';
 
