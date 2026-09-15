@@ -76,7 +76,8 @@ export async function getStash(characterId: string): Promise<{
 
 /**
  * Deposit item from inventory to stash
- * CRITICAL: Only works in hub zone
+ * NEW: Works in any zone (hub or raid)
+ * Items in stash are preserved on death
  */
 export async function depositToStash(
   characterId: string,
@@ -91,7 +92,7 @@ export async function depositToStash(
 
   try {
     return await withSerializableTransaction(async (tx) => {
-      // 1. Check if character is in hub
+      // 1. Get character (no zone restriction anymore)
       const character = await tx.character.findUnique({
         where: { id: characterId },
         include: {
@@ -104,9 +105,7 @@ export async function depositToStash(
         return { success: false, error: 'Character not found' };
       }
 
-      if (character.zone !== 'hub') {
-        return { success: false, error: 'Can only access stash in hub' };
-      }
+      // Zone check removed - stash accessible anywhere
 
       // 2. Find inventory slot
       const invSlot = await tx.inventorySlot.findUnique({
@@ -172,7 +171,7 @@ export async function depositToStash(
 
 /**
  * Withdraw item from stash to inventory
- * CRITICAL: Only works in hub zone
+ * NEW: Works in any zone (hub or raid)
  */
 export async function withdrawFromStash(
   characterId: string,
@@ -187,7 +186,7 @@ export async function withdrawFromStash(
 
   try {
     return await withSerializableTransaction(async (tx) => {
-      // 1. Check if character is in hub
+      // 1. Get character (no zone restriction)
       const character = await tx.character.findUnique({
         where: { id: characterId },
         include: {
@@ -201,9 +200,7 @@ export async function withdrawFromStash(
         return { success: false, error: 'Character not found' };
       }
 
-      if (character.zone !== 'hub') {
-        return { success: false, error: 'Can only access stash in hub' };
-      }
+      // Zone check removed - stash accessible anywhere
 
       // 2. Find stash slot
       const stashSlot = await tx.stashSlot.findUnique({

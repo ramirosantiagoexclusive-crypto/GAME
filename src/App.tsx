@@ -284,7 +284,7 @@ export default function App() {
             stash={stash}
             maxSlots={character.maxStashSlots}
             onWithdraw={(stashIndex: number) => send('stash:withdraw', { stashIndex })}
-            canAccess={character.zone === 'hub'}
+            canAccess={true}
           />
         )}
         {activeTab === 'craft' && (
